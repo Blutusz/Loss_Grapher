@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Loss Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        #ollamaBtn:hover {
+            background: #7c3aed !important;
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .primary-btn {
+            background: #28a745;
+            font-size: 18px;
+            padding: 16px 32px;
+            margin: 20px 0;
+        }
+        
+        .primary-btn:hover {
+            background: #218838;
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        #lossChart {
+            height: 500px !important;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .control-group label {
+            font-size: 1em;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .control-group input[type="range"] {
+            width: 120px;
+        }
+        
+        .control-group input[type="number"] {
+            width: 100px;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .toggle-btn {
+            background: #6c757d;
+            font-size: 14px;
+            padding: 10px 20px;
+        }
+        
+        .toggle-btn.active {
+            background: #007bff;
+        }
+        
+        .analysis-panel {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .convergence-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-left: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .converging { background: #d4edda; color: #155724; }
+        .plateauing { background: #fff3cd; color: #856404; }
+        .diverging { background: #f8d7da; color: #721c24; }
+        
+        .hidden { display: none; }
+        
+        .section-header {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin: 40px 0 20px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #rateChart {
+            height: 200px !important;
+        }
+        
+        .compact-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+            font-size: 1em;
+        }
+        
+        .compact-stats > div {
+            line-height: 1.8;
+        }
+        
+        .placeholder {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        details.ollama-config {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        details.ollama-config summary {
+            list-style: none;
+        }
+        
+        details.ollama-config summary::-webkit-details-marker {
+            display: none;
+        }
+        
+        details.ollama-config summary::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+        
+        details.ollama-config[open] summary::before {
+            transform: rotate(90deg);
+        }
+        
+        details.ollama-config summary:hover {
+            background: #f0f0f0;
+        }
+        
+        code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        
+        .info-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .zoom-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        strong {
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Training Loss Analyzer</h1>
+        
+        <textarea id="logInput" placeholder="Paste your training log here...
+
+Example:
+2025-06-06_model:  15%|███████ | 2359/16000 [39:37<2:24:39,  1.57it/s, lr: 1.0e-04 loss: 1.758e-01]
+
+The tool will extract loss values and step information from your training logs.
+
+Supports formats like:
+• model_name: 15%|███ | 2359/16000 [39:37<2:24:39, 1.57it/s, loss: 1.758e-01]
+• loss: 1.758e-01 - 2359/16000
+
+💡 Tip: You can also drag and drop a log file into this area!></textarea>
+        
+        <div style="text-align: center;">
+            <button class="primary-btn" onclick="extractLosses()">🔍 Analyze Training Log</button>
+        </div>
+        
+        <details class="ollama-config" style="margin-top: 30px;">
+            <summary style="cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; font-weight: bold; user-select: none;">
+                ⚙️ Ollama Configuration & Testing
+            </summary>
+            <div style="padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px; margin-top: -2px;">
+                <p style="margin: 0 0 20px 0; color: #666;">
+                    Configure and test your Ollama connection before analyzing training data. 
+                    The debug log shows detailed connection information and errors.
+                </p>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ollama Server URL:</label>
+                    <input type="text" id="ollamaUrl" value="http://192.168.47.237:11434" 
+                           style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace;">
+                </div>
+                
+                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                    <button onclick="testOllamaConnection()" style="background: #6c757d;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="listModels()" style="background: #17a2b8;">
+                        📋 List Models
+                    </button>
+                    <button onclick="testGenerate()" style="background: #ffc107; color: #333;">
+                        🧪 Test Generate
+                    </button>
+                    <button onclick="clearDebugLog()" style="background: #dc3545;">
+                        🗑️ Clear Log
+                    </button>
+                    <span id="connectionStatus" style="font-weight: bold;"></span>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Debug Log:</label>
+                    <div id="debugLog" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; 
+                                             font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; 
+                                             height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4;">Ollama Debug Console initialized...
+Waiting for connection test...
+                    </div>
+                </div>
+                
+                <div style="background: #e9ecef; padding: 15px; border-radius: 6px;">
+                    <strong>Quick Setup Guide:</strong>
+                    <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Start Ollama with CORS: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">OLLAMA_ORIGINS="*" ollama serve</code></li>
+                        <li>Pull models: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">ollama pull gemma3:27b</code></li>
+                        <li>Test connection using the button above</li>
+                        <li>If connection fails, check the debug log for details</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
+        
+        <div id="mainContent" class="hidden">
+            <div class="section-header">📈 Loss Visualization</div>
+            <div class="chart-container">
+                <canvas id="lossChart"></canvas>
+                <div class="zoom-info">💡 Use mouse wheel to zoom, drag to pan</div>
+            </div>
+            
+            <div class="controls-row">
+                <div class="control-group">
+                    <label>Moving Average:</label>
+                    <input type="range" id="maWindow" min="0" max="50" value="0" onchange="updateMovingAverage()">
+                    <span id="maWindowValue" style="min-width: 35px; font-weight: bold;">Off</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Analyze Range:</label>
+                    <input type="number" id="fromStep" placeholder="Start" value="">
+                    <span>to</span>
+                    <input type="number" id="toStep" placeholder="End" value="">
+                    <button onclick="analyzeRange()">Analyze</button>
+                </div>
+                
+                <button class="toggle-btn" id="trendBtn" onclick="toggleTrendline()">📉 Trendline</button>
+                <button class="toggle-btn active" id="yScaleBtn" onclick="toggleYScale()">📏 Auto Scale</button>
+                <button onclick="resetZoom()">🔍 Reset Zoom</button>
+            </div>
+            
+            <div class="stats-grid" id="mainStats"></div>
+            
+            <div id="rangeStats" class="analysis-panel hidden">
+                <strong style="font-size: 1.2em;">📊 Range Analysis</strong>
+                <span id="convergenceIndicator" class="convergence-badge"></span>
+                <div id="rangeContent" class="compact-stats"></div>
+            </div>
+            
+            <div class="section-header">📉 Rate of Change</div>
+            <div class="chart-container">
+                <canvas id="rateChart"></canvas>
+                <div class="info-text">Green indicates loss improvement, red indicates loss increase</div>
+            </div>
+            
+            <div class="section-header">📄 Extracted Loss Values</div>
+            <div id="output" class="output">
+                <div class="placeholder">Processing...</div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="copyResults()">📋 Copy Values</button>
+                <button onclick="downloadChart()">📷 Save Chart</button>
+                <button onclick="exportCSV()">📊 Export CSV</button>
+                <button onclick="exportJSON()">📋 Export JSON</button>
+                <button onclick="exportAnalytics()">📑 Full Report</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging function - defined first
+        function debugLog(message, type = 'info') {
+            try {
+                const debugDiv = document.getElementById('debugLog');
+                if (!debugDiv) {
+                    console.log(`[${type}] ${message}`);
+                    return;
+                }
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const typeColors = {
+                    info: '#58a6ff',
+                    success: '#56d364',
+                    error: '#f85149',
+                    warning: '#d29922'
+                };
+                const color = typeColors[type] || '#d4d4d4';
+                
+                debugDiv.innerHTML += `<span style="color: #8b949e">[${timestamp}]</span> <span style="color: ${color}">${message}</span>\n`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            } catch (e) {
+                console.error('debugLog error:', e);
+            }
+        }
+        
+        // Global error handlers
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+            debugLog(`Script error: ${event.error?.message || 'Unknown error'}`, 'error');
+            debugLog(`At: ${event.filename}:${event.lineno}:${event.colno}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            debugLog(`Unhandled promise rejection: ${event.reason}`, 'error');
+        });
+        
+        let lossChart = null;
+        let rateChart = null;
+        let chartData = [];
+        let showTrendline = false;
+        let autoYScale = true;
+        let movingAverageWindow = 0;
+        let lastAIAnalysis = '';
+        
+        function clearDebugLog() {
+            document.getElementById('debugLog').innerHTML = 'Debug log cleared.\n';
+            debugLog('Ready for new tests.', 'info');
+        }
+        
+        function getOllamaUrl() {
+            return document.getElementById('ollamaUrl').value.trim();
+        }
+        
+        function extractLosses() {
+            const logInput = document.getElementById('logInput').value;
+            const mainContent = document.getElementById('mainContent');
+            
+            if (!logInput.trim()) {
+                alert('Please paste some log data first!');
+                return;
+            }
+            
+            const lines = logInput.split('\n');
+            const lossData = [];
+            
+            // Regular expressions
+            const lossPattern = /loss:\s*([0-9]+\.?[0-9]*(?:e[+-]?[0-9]+)?)/;
+            const stepTotalPattern = /\|\s*(\d+)\/(\d+)\s*\[/;
+            const altStepPattern = /(\d+)\/(\d+)\s*\[.*?loss:/;
+            
+            lines.forEach((line, index) => {
+                const lossMatch = line.match(lossPattern);
+                if (lossMatch) {
+                    const lossValue = lossMatch[1];
+                    let stepTotalMatch = line.match(stepTotalPattern) || line.match(altStepPattern);
+                    
+                    if (stepTotalMatch) {
+                        const step = parseInt(stepTotalMatch[1]);
+                        const total = parseInt(stepTotalMatch[2]);
+                        lossData.push({
+                            formatted: `loss: ${lossValue} - ${step}/${total}`,
+                            lossValue: parseFloat(lossValue),
+                            step: step,
+                            total: total
+                        });
+                    }
+                }
+            });
+            
+            if (lossData.length === 0) {
+                alert('No loss values found in the log data. Make sure your log contains lines with "loss:" and step information.');
+                return;
+            }
+            
+            chartData = lossData;
+            mainContent.classList.remove('hidden');
+            
+            // Reset AI analysis
+            lastAIAnalysis = '';
+            document.getElementById('aiAnalysis').style.display = 'none';
+            document.getElementById('copyAIBtn').style.display = 'none';
+            document.getElementById('ollamaStatus').textContent = '';
+            
+            // Set default range values
+            if (chartData.length > 0) {
+                const firstStep = chartData[0].step;
+                const lastStep = chartData[chartData.length - 1].step;
+                
+                // Set from step to 1000 or first step if data starts after 1000
+                document.getElementById('fromStep').value = Math.max(1000, firstStep);
+                document.getElementById('toStep').value = lastStep;
+            }
+            
+            // Display results
+            displayResults();
+            updateMainStats();
+            createChart();
+            createRateChart();
+            
+            // Auto-test Ollama connection if available
+            setTimeout(() => {
+                testOllamaConnection(true).then(connected => {
+                    if (connected) {
+                        debugLog('Ollama is ready for AI analysis', 'success');
+                    } else {
+                        debugLog('Ollama not available - configure in the settings above', 'warning');
+                    }
+                });
+            }, 500);
+        }
+        
+        function displayResults() {
+            const outputDiv = document.getElementById('output');
+            const displayLimit = 50;
+            let html = '';
+            
+            chartData.slice(0, displayLimit).forEach(item => {
+                html += `${item.formatted}\n`;
+            });
+            
+            if (chartData.length > displayLimit) {
+                html += `\n... and ${chartData.length - displayLimit} more entries`;
+            }
+            
+            outputDiv.textContent = html;
+        }
+        
+        function updateMainStats() {
+            const losses = chartData.map(item => item.lossValue);
+            const minLoss = Math.min(...losses);
+            const maxLoss = Math.max(...losses);
+            const avgLoss = losses.reduce((a, b) => a + b, 0) / losses.length;
+            const lastLoss = losses[losses.length - 1];
+            
+            // Calculate trend
+            let trend = 'Stable';
+            let trendColor = '#666';
+            let improvement = 0;
+            if (losses.length >= 2) {
+                improvement = ((losses[0] - lastLoss) / losses[0] * 100);
+                if (improvement > 1) {
+                    trend = `↓ ${improvement.toFixed(1)}%`;
+                    trendColor = '#28a745';
+                } else if (improvement < -1) {
+                    trend = `↑ ${Math.abs(improvement).toFixed(1)}%`;
+                    trendColor = '#dc3545';
+                } else {
+                    trend = 'Stable';
+                    trendColor = '#ffc107';
+                }
+            }
+            
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Steps</div>
+                    <div class="stat-value">${chartData.length.toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Current Loss</div>
+                    <div class="stat-value">${lastLoss.toExponential(3)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Loss</div>
+                    <div class="stat-value">${minLoss.toExponential(3)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Loss</div>
+                    <div class="stat-value">${avgLoss.toExponential(3)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Overall Trend</div>
+                    <div class="stat-value" style="color: ${trendColor};">${trend}</div>
+                </div>
+            `;
+            
+            document.getElementById('mainStats').innerHTML = statsHtml;
+        }
+        
+        function createChart() {
+            const ctx = document.getElementById('lossChart').getContext('2d');
+            
+            if (lossChart) {
+                lossChart.destroy();
+            }
+            
+            const steps = chartData.map(item => item.step);
+            const losses = chartData.map(item => item.lossValue);
+            
+            // Y-axis range
+            const minLoss = Math.min(...losses);
+            const maxLoss = Math.max(...losses);
+            let yMin, yMax;
+            
+            if (autoYScale) {
+                const range = maxLoss - minLoss;
+                const padding = range * 0.1;
+                yMin = Math.max(0, minLoss - padding);
+                yMax = maxLoss + padding;
+            } else {
+                yMin = 0;
+                yMax = undefined;
+            }
+            
+            // Datasets - order matters for visibility
+            const datasets = [{
+                label: 'Training Loss',
+                data: losses,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.05)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                tension: 0.1,
+                order: 2 // Draw second
+            }];
+            
+            // Add trendline
+            if (showTrendline && chartData.length > 1) {
+                const trendline = calculateTrendline(steps, losses);
+                datasets.push({
+                    label: 'Trend',
+                    data: steps.map(step => trendline.slope * step + trendline.intercept),
+                    borderColor: '#dc3545',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0,
+                    order: 3 // Draw third
+                });
+            }
+            
+            // Add moving average on top
+            if (movingAverageWindow > 0 && chartData.length > movingAverageWindow) {
+                const maData = calculateMovingAverage(losses, movingAverageWindow);
+                datasets.push({
+                    label: `MA(${movingAverageWindow})`,
+                    data: maData,
+                    borderColor: '#28a745',
+                    borderWidth: 4,
+                    pointRadius: 0,
+                    tension: 0,
+                    order: 1 // Draw first (on top)
+                });
+            }
+            
+            lossChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: steps,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Training Step',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Loss Value',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            min: yMin,
+                            max: yMax,
+                            ticks: {
+                                font: { size: 12 },
+                                callback: function(value) {
+                                    return value.toFixed(3);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 15
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                },
+                                mode: 'x',
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x',
+                            }
+                        },
+                        tooltip: {
+                            bodyFont: { size: 14 },
+                            titleFont: { size: 14 }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createRateChart() {
+            const ctx = document.getElementById('rateChart').getContext('2d');
+            
+            if (rateChart) {
+                rateChart.destroy();
+            }
+            
+            if (chartData.length < 2) return;
+            
+            const rates = [];
+            const labels = [];
+            for (let i = 1; i < chartData.length; i++) {
+                const deltaLoss = chartData[i].lossValue - chartData[i-1].lossValue;
+                const deltaStep = chartData[i].step - chartData[i-1].step;
+                const rate = deltaLoss / deltaStep;
+                rates.push(rate);
+                labels.push(chartData[i].step);
+            }
+            
+            rateChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Loss Rate of Change',
+                        data: rates,
+                        borderColor: rates.map(r => r < 0 ? '#28a745' : '#dc3545'),
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        segment: {
+                            borderColor: function(ctx) {
+                                return ctx.p0.parsed.y < 0 ? '#28a745' : '#dc3545';
+                            }
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Rate: ' + context.parsed.y.toExponential(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Training Step',
+                                font: { size: 14 }
+                            },
+                            ticks: {
+                                font: { size: 11 },
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Δ Loss / Δ Step',
+                                font: { size: 14 }
+                            },
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return value.toExponential(1);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function calculateMovingAverage(data, window) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                const start = Math.max(0, i - Math.floor(window / 2));
+                const end = Math.min(data.length, i + Math.ceil(window / 2));
+                const subset = data.slice(start, end);
+                const avg = subset.reduce((a, b) => a + b, 0) / subset.length;
+                result.push(avg);
+            }
+            return result;
+        }
+        
+        function updateMovingAverage() {
+            const slider = document.getElementById('maWindow');
+            const label = document.getElementById('maWindowValue');
+            movingAverageWindow = parseInt(slider.value);
+            
+            label.textContent = movingAverageWindow === 0 ? 'Off' : movingAverageWindow;
+            
+            if (chartData.length > 0) {
+                createChart();
+            }
+        }
+        
+        function analyzeRange() {
+            const fromStep = parseInt(document.getElementById('fromStep').value) || chartData[0]?.step;
+            const toStep = parseInt(document.getElementById('toStep').value) || chartData[chartData.length-1]?.step;
+            
+            const rangeData = chartData.filter(item => item.step >= fromStep && item.step <= toStep);
+            
+            if (rangeData.length === 0) {
+                alert('No data in this range');
+                return;
+            }
+            
+            const losses = rangeData.map(item => item.lossValue);
+            const avgLoss = losses.reduce((a, b) => a + b, 0) / losses.length;
+            const minLoss = Math.min(...losses);
+            const maxLoss = Math.max(...losses);
+            const stdDev = Math.sqrt(losses.reduce((acc, val) => acc + Math.pow(val - avgLoss, 2), 0) / losses.length);
+            
+            // Convergence analysis
+            const cv = stdDev / avgLoss;
+            let status = '';
+            let statusClass = '';
+            
+            if (cv < 0.01) {
+                status = 'CONVERGED';
+                statusClass = 'converging';
+            } else if (cv < 0.05) {
+                status = 'CONVERGING';
+                statusClass = 'converging';
+            } else if (cv < 0.1) {
+                status = 'PLATEAUING';
+                statusClass = 'plateauing';
+            } else {
+                status = 'ACTIVE TRAINING';
+                statusClass = 'converging';
+            }
+            
+            let improvement = 'N/A';
+            let improvementColor = '#666';
+            if (rangeData.length >= 2) {
+                const imp = ((rangeData[0].lossValue - rangeData[rangeData.length - 1].lossValue) / rangeData[0].lossValue * 100);
+                improvement = imp > 0 ? `↓ ${imp.toFixed(2)}%` : `↑ ${Math.abs(imp).toFixed(2)}%`;
+                improvementColor = imp > 0 ? '#28a745' : '#dc3545';
+            }
+            
+            const rangeContent = `
+                <div>
+                    <strong>Step Range:</strong> ${fromStep.toLocaleString()} - ${toStep.toLocaleString()}<br>
+                    <strong>Data Points:</strong> ${rangeData.length.toLocaleString()}<br>
+                    <strong>Step Coverage:</strong> ${((toStep - fromStep + 1) / rangeData.length).toFixed(1)} steps/sample
+                </div>
+                <div>
+                    <strong>Average Loss:</strong> ${avgLoss.toExponential(3)}<br>
+                    <strong>Std Deviation:</strong> ${stdDev.toExponential(3)}<br>
+                    <strong>Coeff. of Variation:</strong> ${(cv * 100).toFixed(2)}%
+                </div>
+                <div>
+                    <strong>Min Loss:</strong> ${minLoss.toExponential(3)}<br>
+                    <strong>Max Loss:</strong> ${maxLoss.toExponential(3)}<br>
+                    <strong>Range Improvement:</strong> <span style="color: ${improvementColor}">${improvement}</span>
+                </div>
+            `;
+            
+            document.getElementById('rangeContent').innerHTML = rangeContent;
+            document.getElementById('convergenceIndicator').textContent = status;
+            document.getElementById('convergenceIndicator').className = `convergence-badge ${statusClass}`;
+            document.getElementById('rangeStats').classList.remove('hidden');
+        }
+        
+        function toggleTrendline() {
+            showTrendline = !showTrendline;
+            document.getElementById('trendBtn').classList.toggle('active', showTrendline);
+            createChart();
+        }
+        
+        function toggleYScale() {
+            autoYScale = !autoYScale;
+            document.getElementById('yScaleBtn').classList.toggle('active', autoYScale);
+            createChart();
+        }
+        
+        function resetZoom() {
+            if (lossChart) {
+                lossChart.resetZoom();
+            }
+        }
+        
+        function calculateTrendline(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
+            const sumXX = x.reduce((acc, xi) => acc + xi * xi, 0);
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            return { slope, intercept };
+        }
+        
+        function downloadChart() {
+            if (!lossChart) return;
+            
+            const link = document.createElement('a');
+            link.download = 'training_loss_chart.png';
+            link.href = lossChart.toBase64Image();
+            link.click();
+        }
+        
+        function copyResults() {
+            let text = '';
+            chartData.forEach(item => {
+                text += item.formatted + '\n';
+            });
+            
+            navigator.clipboard.writeText(text.trim()).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+        
+        function exportCSV() {
+            let csv = 'Step,Loss\n';
+            chartData.forEach(item => {
+                csv += `${item.step},${item.lossValue}\n`;
+            });
+            downloadFile(csv, 'training_loss.csv', 'text/csv');
+        }
+        
+        function exportJSON() {
+            const json = JSON.stringify(chartData, null, 2);
+            downloadFile(json, 'training_loss.json', 'application/json');
+        }
+        
+        function exportAnalytics() {
+            const losses = chartData.map(item => item.lossValue);
+            const sortedLosses = [...losses].sort((a, b) => a - b);
+            
+            const report = {
+                summary: {
+                    totalSteps: chartData.length,
+                    firstStep: chartData[0].step,
+                    lastStep: chartData[chartData.length - 1].step,
+                    minLoss: Math.min(...losses),
+                    maxLoss: Math.max(...losses),
+                    avgLoss: losses.reduce((a, b) => a + b, 0) / losses.length,
+                    stdDev: Math.sqrt(losses.reduce((acc, val) => acc + Math.pow(val - losses.reduce((a, b) => a + b, 0) / losses.length, 2), 0) / losses.length),
+                    currentLoss: losses[losses.length - 1],
+                    improvement: ((losses[0] - losses[losses.length - 1]) / losses[0] * 100).toFixed(2) + '%'
+                },
+                percentiles: {
+                    p10: sortedLosses[Math.floor(sortedLosses.length * 0.1)],
+                    p25: sortedLosses[Math.floor(sortedLosses.length * 0.25)],
+                    p50: sortedLosses[Math.floor(sortedLosses.length * 0.5)],
+                    p75: sortedLosses[Math.floor(sortedLosses.length * 0.75)],
+                    p90: sortedLosses[Math.floor(sortedLosses.length * 0.9)]
+                },
+                windowedAnalysis: [],
+                data: chartData
+            };
+            
+            // Add windowed analysis every 1000 steps
+            const windowSize = 1000;
+            for (let i = 0; i <= chartData[chartData.length - 1].step; i += windowSize) {
+                const windowData = chartData.filter(item => item.step >= i && item.step < i + windowSize);
+                if (windowData.length > 0) {
+                    const windowLosses = windowData.map(item => item.lossValue);
+                    report.windowedAnalysis.push({
+                        stepRange: `${i}-${i + windowSize - 1}`,
+                        avgLoss: windowLosses.reduce((a, b) => a + b, 0) / windowLosses.length,
+                        minLoss: Math.min(...windowLosses),
+                        maxLoss: Math.max(...windowLosses),
+                        samples: windowLosses.length
+                    });
+                }
+            }
+            
+            downloadFile(JSON.stringify(report, null, 2), 'training_analytics.json', 'application/json');
+        }
+        
+        function copyAIAnalysis() {
+            if (!lastAIAnalysis) return;
+            
+            navigator.clipboard.writeText(lastAIAnalysis).then(() => {
+                const btn = document.getElementById('copyAIBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+        
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        }
+        
+        
+        async function analyzeWithOllama() {
+            const model = document.getElementById('ollamaModel').value;
+            const statusEl = document.getElementById('ollamaStatus');
+            const analysisEl = document.getElementById('aiAnalysis');
+            const btn = document.getElementById('ollamaBtn');
+            const ollamaUrl = getOllamaUrl();
+            
+            if (chartData.length === 0) {
+                alert('Please analyze training data first');
+                return;
+            }
+            
+            debugLog(`Starting AI analysis with model: ${model}`, 'info');
+            debugLog(`Using Ollama at: ${ollamaUrl}`, 'info');
+            
+            // Ensure the configuration section is visible for debugging
+            const configSection = document.querySelector('details.ollama-config');
+            if (configSection && !configSection.open) {
+                debugLog('Opening configuration section for visibility', 'info');
+                configSection.open = true;
+            }
+            
+            // Test connection first
+            const isConnected = await testOllamaConnection();
+            if (!isConnected) {
+                debugLog('Aborting analysis due to connection failure', 'error');
+                alert('Cannot connect to Ollama. Please check the debug log in the configuration section.');
+                return;
+            }
+            
+            // Prepare data summary for analysis
+            const losses = chartData.map(item => item.lossValue);
+            const steps = chartData.map(item => item.step);
+            
+            // Calculate key metrics
+            const minLoss = Math.min(...losses);
+            const maxLoss = Math.max(...losses);
+            const avgLoss = losses.reduce((a, b) => a + b, 0) / losses.length;
+            const currentLoss = losses[losses.length - 1];
+            const improvement = ((losses[0] - currentLoss) / losses[0] * 100).toFixed(2);
+            
+            // Calculate recent trend (last 20% of data)
+            const recentCount = Math.max(5, Math.floor(chartData.length * 0.2));
+            const recentLosses = losses.slice(-recentCount);
+            const recentAvg = recentLosses.reduce((a, b) => a + b, 0) / recentLosses.length;
+            const recentStdDev = Math.sqrt(recentLosses.reduce((acc, val) => acc + Math.pow(val - recentAvg, 2), 0) / recentLosses.length);
+            
+            // Sample some data points for context
+            const samples = [];
+            const sampleInterval = Math.max(1, Math.floor(chartData.length / 10));
+            for (let i = 0; i < chartData.length; i += sampleInterval) {
+                samples.push({
+                    step: chartData[i].step,
+                    loss: chartData[i].lossValue.toExponential(3)
+                });
+            }
+            
+            // Calculate additional metrics for better analysis
+            const lossChanges = [];
+            for (let i = 1; i < chartData.length; i++) {
+                lossChanges.push(chartData[i].lossValue - chartData[i-1].lossValue);
+            }
+            const avgLossChange = lossChanges.length > 0 ? lossChanges.reduce((a, b) => a + b, 0) / lossChanges.length : 0;
+            
+            // Find plateaus (where loss doesn't change much)
+            let plateauCount = 0;
+            for (let i = 1; i < losses.length; i++) {
+                if (Math.abs(losses[i] - losses[i-1]) < losses[i-1] * 0.001) {
+                    plateauCount++;
+                }
+            }
+            const plateauPercentage = (plateauCount / (losses.length - 1) * 100).toFixed(1);
+            
+            const systemPrompt = `You are an expert machine learning engineer specializing in neural network training optimization. You have extensive experience analyzing training curves, identifying convergence patterns, and diagnosing training issues. Your role is to provide actionable, practical advice based on training metrics.
+
+Key expertise areas:
+- Loss curve analysis and convergence detection
+- Learning rate scheduling and optimization
+- Overfitting/underfitting diagnosis
+- Training stability assessment
+- Hyperparameter tuning recommendations
+
+When analyzing training data:
+1. Be specific and quantitative in your assessments
+2. Identify both positive aspects and areas of concern
+3. Provide clear, actionable recommendations
+4. Explain the reasoning behind your suggestions
+5. Consider the practical implications of your advice
+
+Your analysis should be thorough but concise, focusing on insights that will help improve training outcomes.`;
+
+            const prompt = `Analyze this neural network training data and provide expert insights:
+
+TRAINING DATA SUMMARY:
+- Total steps recorded: ${chartData.length}
+- Step range: ${steps[0]} to ${steps[steps.length - 1]}
+- Initial loss: ${losses[0].toExponential(3)}
+- Current loss: ${currentLoss.toExponential(3)}
+- Best loss achieved: ${minLoss.toExponential(3)}
+- Average loss: ${avgLoss.toExponential(3)}
+- Overall improvement: ${improvement}%
+- Average loss change per step: ${avgLossChange.toExponential(3)}
+- Plateau percentage: ${plateauPercentage}% of steps
+
+RECENT PERFORMANCE (last ${recentCount} steps):
+- Average loss: ${recentAvg.toExponential(3)}
+- Standard deviation: ${recentStdDev.toExponential(3)}
+- Coefficient of variation: ${(recentStdDev / recentAvg * 100).toFixed(2)}%
+
+LOSS TRAJECTORY SAMPLES:
+${samples.map(s => `Step ${s.step}: loss = ${s.loss}`).join('\n')}
+
+Please provide:
+1. TRAINING ASSESSMENT: Overall evaluation of the training progress
+2. CONVERGENCE STATUS: Analysis of whether the model is converging properly
+3. IDENTIFIED ISSUES: Any problems or concerns you observe
+4. RECOMMENDATIONS: Specific actions to improve training
+5. NEXT STEPS: What should be done next
+
+Focus on practical, actionable insights. Be direct and specific.`;
+            
+            try {
+                // Update UI
+                btn.disabled = true;
+                statusEl.textContent = '🤖 Analyzing with AI...';
+                statusEl.style.color = '#8b5cf6';
+                analysisEl.style.display = 'block';
+                analysisEl.innerHTML = '<div class="placeholder">🔄 Generating analysis...</div>';
+                document.getElementById('copyAIBtn').style.display = 'none';
+                
+                debugLog('Preparing prompt with training data...', 'info');
+                debugLog(`Data points: ${chartData.length}, Steps: ${steps[0]} to ${steps[steps.length - 1]}`, 'info');
+                
+                // Make request to Ollama with streaming
+                const generateUrl = `${ollamaUrl}/api/generate`;
+                debugLog(`Sending request to: ${generateUrl}`, 'info');
+                
+                const requestBody = {
+                    model: model,
+                    system: systemPrompt,
+                    prompt: prompt,
+                    stream: true,
+                    options: {
+                        temperature: 0.7,
+                        top_p: 0.9,
+                        num_predict: 1000,
+                    }
+                };
+                
+                debugLog('Request options: temperature=0.7, top_p=0.9, max_tokens=1000', 'info');
+                
+                const response = await fetch(generateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                debugLog(`Response status: ${response.status}`, response.ok ? 'info' : 'error');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    debugLog(`Error response: ${errorText}`, 'error');
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                
+                // Handle streaming response
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+                let displayResponse = '';
+                let tokenCount = 0;
+                
+                analysisEl.innerHTML = '<div style="color: #333; font-size: 14px; line-height: 1.8;"><p></p></div>';
+                const contentDiv = analysisEl.querySelector('p');
+                
+                debugLog('Receiving streaming response...', 'info');
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        debugLog(`Stream complete. Total tokens: ~${tokenCount}`, 'success');
+                        break;
+                    }
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            try {
+                                const data = JSON.parse(line);
+                                if (data.error) {
+                                    throw new Error(data.error);
+                                }
+                                if (data.response) {
+                                    fullResponse += data.response;
+                                    tokenCount++;
+                                    // Update status with character count
+                                    statusEl.textContent = `🤖 Analyzing... (${fullResponse.length} chars)`;
+                                    // Format for display
+                                    displayResponse = fullResponse
+                                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                        .replace(/\n\n/g, '</p><p>')
+                                        .replace(/\n/g, '<br>');
+                                    contentDiv.innerHTML = displayResponse;
+                                }
+                                if (data.done) {
+                                    lastAIAnalysis = fullResponse;
+                                    statusEl.textContent = `✅ Analysis complete (${model})`;
+                                    statusEl.style.color = '#28a745';
+                                    document.getElementById('copyAIBtn').style.display = 'inline-block';
+                                    debugLog(`Analysis complete! Response length: ${fullResponse.length} chars`, 'success');
+                                }
+                            } catch (e) {
+                                debugLog(`Parse error: ${e.message}`, 'error');
+                                console.error('Parse error:', e);
+                            }
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ollama error:', error);
+                debugLog(`Analysis failed: ${error.message}`, 'error');
+                
+                // Log stack trace for debugging
+                if (error.stack) {
+                    debugLog('Stack trace:', 'error');
+                    error.stack.split('\n').slice(1, 4).forEach(line => {
+                        debugLog(line.trim(), 'error');
+                    });
+                }
+                
+                let errorMessage = error.message;
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = `Cannot connect to Ollama. Please ensure:
+                    
+1. Ollama is running at ${ollamaUrl}
+2. CORS is enabled by setting OLLAMA_ORIGINS environment variable
+                    
+To enable CORS and start Ollama:
+- Linux/Mac: OLLAMA_ORIGINS="*" ollama serve
+- Windows: set OLLAMA_ORIGINS=* && ollama serve
+                    
+If Ollama is already running, stop it first (Ctrl+C) then restart with CORS enabled.`;
+                    debugLog('Tip: Check if Ollama is running with: curl http://localhost:11434/api/tags', 'warning');
+                } else if (error.message.includes('model') && (error.message.includes('not found') || error.message.includes('does not exist'))) {
+                    errorMessage = `Model "${model}" not found. 
+                    
+To download the model, run:
+ollama pull ${model}
+                    
+Then try the analysis again.`;
+                    debugLog(`Tip: List available models with: ollama list`, 'warning');
+                }
+                
+                analysisEl.innerHTML = `<div style="color: #dc3545; white-space: pre-wrap;">❌ Error: ${errorMessage}</div>`;
+                statusEl.textContent = '❌ Analysis failed';
+                statusEl.style.color = '#dc3545';
+                document.getElementById('copyAIBtn').style.display = 'none';
+            } finally {
+                btn.disabled = false;
+                debugLog('Analysis process ended', 'info');
+            }
+        }
+        }
+        
+        // Drag and drop support
+        const textarea = document.getElementById('logInput');
+        
+        textarea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            textarea.style.borderColor = '#007bff';
+            textarea.style.background = '#f0f4ff';
+        });
+        
+        textarea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            textarea.style.borderColor = '#e0e0e0';
+            textarea.style.background = 'white';
+        });
+        
+        textarea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            textarea.style.borderColor = '#e0e0e0';
+            textarea.style.background = 'white';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textarea.value = e.target.result;
+                };
+                reader.readAsText(files[0]);
+            }
+        });
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            debugLog('Training Loss Analyzer v2.0 loaded', 'success');
+            debugLog('Chart.js version: ' + (Chart.version || 'unknown'), 'info');
+            debugLog('Ready to test Ollama connection', 'info');
+            
+            // Try to detect common Ollama URLs
+            const urlInput = document.getElementById('ollamaUrl');
+            const testUrls = [
+                'http://192.168.47.237:11434',
+                'http://localhost:11434',
+                'http://127.0.0.1:11434'
+            ];
+            
+            debugLog('Attempting to auto-detect Ollama server...', 'info');
+            
+            // Test each URL
+            testUrls.forEach(async (url, index) => {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    
+                    const response = await fetch(`${url}/api/tags`, { 
+                        method: 'GET',
+                        mode: 'cors',
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        debugLog(`✓ Found Ollama at: ${url}`, 'success');
+                        if (index > 0) { // If not already the default
+                            urlInput.value = url;
+                            debugLog(`Updated URL to: ${url}`, 'info');
+                        }
+                    }
+                } catch (e) {
+                    // Silent fail for auto-detection
+                }
+            });
+        });
+    </script>
+</body>
+</html>
