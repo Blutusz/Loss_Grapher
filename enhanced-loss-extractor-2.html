@@ -314,7 +314,7 @@
     <div class="container">
         <h1>📊 Training Loss Analyzer</h1>
         
-        <textarea id="logInput" placeholder="Paste your training log here...
+        <textarea id="logInput" placeholder="Paste your training log here...">
 
 Example:
 2025-06-06_model:  15%|███████ | 2359/16000 [39:37<2:24:39,  1.57it/s, lr: 1.0e-04 loss: 1.758e-01]
@@ -325,7 +325,8 @@ Supports formats like:
 • model_name: 15%|███ | 2359/16000 [39:37<2:24:39, 1.57it/s, loss: 1.758e-01]
 • loss: 1.758e-01 - 2359/16000
 
-💡 Tip: You can also drag and drop a log file into this area!></textarea>
+💡 Tip: You can also drag and drop a log file into this area!
+        </textarea>
         
         <div style="text-align: center;">
             <button class="primary-btn" onclick="extractLosses()">🔍 Analyze Training Log</button>
