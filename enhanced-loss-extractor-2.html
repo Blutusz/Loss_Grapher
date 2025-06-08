@@ -430,17 +430,34 @@ Waiting for connection test...
                 <div class="placeholder">Processing...</div>
             </div>
             
-            <div class="button-group">
-                <button onclick="copyResults()">📋 Copy Values</button>
-                <button onclick="downloadChart()">📷 Save Chart</button>
-                <button onclick="exportCSV()">📊 Export CSV</button>
-                <button onclick="exportJSON()">📋 Export JSON</button>
-                <button onclick="exportAnalytics()">📑 Full Report</button>
+                <div class="button-group">
+                    <button onclick="copyResults()">📋 Copy Values</button>
+                    <button onclick="downloadChart()">📷 Save Chart</button>
+                    <button onclick="exportCSV()">📊 Export CSV</button>
+                    <button onclick="exportJSON()">📋 Export JSON</button>
+                    <button onclick="exportAnalytics()">📑 Full Report</button>
+                </div>
+
+                <div id="aiAnalysis" class="analysis-panel" style="display:none;"></div>
+                <div style="text-align:center; margin-bottom:20px;">
+                    <input id="ollamaModel" type="text" value="tinyllama:latest" style="width:200px; padding:6px; border:1px solid #ccc; border-radius:4px;" />
+                    <button id="ollamaBtn" onclick="analyzeWithOllama()">🤖 Analyze with AI</button>
+                    <button id="copyAIBtn" onclick="copyAIAnalysis()" style="display:none;">📋 Copy Analysis</button>
+                    <span id="ollamaStatus" style="margin-left:10px; font-weight:bold;"></span>
+                </div>
+
+                <div class="analysis-panel">
+                    <div id="chatHistory" style="background:#f8f9fa; border:2px solid #e9ecef; border-radius:8px; padding:10px; max-height:200px; overflow-y:auto;"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <input id="chatInput" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Type a message...">
+                        <button onclick="sendChatMessage()">Send</button>
+                        <button onclick="clearChat()">Clear Chat</button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script>
+        <script>
         // Debug logging function - defined first
         function debugLog(message, type = 'info') {
             try {
@@ -485,6 +502,7 @@ Waiting for connection test...
         let autoYScale = true;
         let movingAverageWindow = 0;
         let lastAIAnalysis = '';
+        let chatHistory = [];
         
         function clearDebugLog() {
             document.getElementById('debugLog').innerHTML = 'Debug log cleared.\n';
@@ -1413,7 +1431,54 @@ Then try the analysis again.`;
                 debugLog('Analysis process ended', 'info');
             }
         }
-        
+
+        function renderChat() {
+            const chatDiv = document.getElementById('chatHistory');
+            chatDiv.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                div.textContent = (msg.role === 'user' ? 'You: ' : 'Assistant: ') + msg.content;
+                chatDiv.appendChild(div);
+            });
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            chatHistory.push({ role: 'user', content: text });
+            input.value = '';
+
+            const systemPrompt = 'You are a helpful assistant.';
+            const messages = [{ role: 'system', content: systemPrompt }, ...chatHistory];
+            const body = {
+                model: document.getElementById('ollamaModel').value,
+                stream: false,
+                messages
+            };
+            try {
+                const res = await fetch(`${getOllamaUrl()}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.message) {
+                    chatHistory.push({ role: 'assistant', content: data.message.content });
+                    renderChat();
+                }
+            } catch (err) {
+                chatHistory.push({ role: 'assistant', content: 'Error: ' + err.message });
+                renderChat();
+            }
+        }
+
+        function clearChat() {
+            chatHistory = [];
+            renderChat();
+        }
+
         // Drag and drop support
         const textarea = document.getElementById('logInput');
         
