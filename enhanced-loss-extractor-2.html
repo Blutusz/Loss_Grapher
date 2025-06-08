@@ -343,10 +343,25 @@ Supports formats like:
                 </p>
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ollama Server URL:</label>
-                    <input type="text" id="ollamaUrl" value="http://192.168.47.237:11434" 
+                    <input type="text" id="ollamaUrl" value="http://192.168.47.237:11434"
                            style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace;">
                 </div>
-                
+
+                <div style="margin-bottom: 20px;">
+                    <label for="systemPrompt" style="display: block; margin-bottom: 10px; font-weight: bold;">System Prompt:</label>
+                    <textarea id="systemPrompt" style="width: 100%; height: 180px; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace;">
+You are an ML engineer reviewing training logs for the gemma3:27b model. Provide short, quantitative insights and actionable advice. Use this format:
+
+TRAINING ASSESSMENT:
+CONVERGENCE STATUS:
+IDENTIFIED ISSUES:
+RECOMMENDATIONS:
+NEXT STEPS:
+
+Limit the response to about 200 words.
+                    </textarea>
+                </div>
+
                 <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
                     <button onclick="testOllamaConnection()" style="background: #6c757d;">
                         🔌 Test Connection
@@ -1234,24 +1249,8 @@ Waiting for connection test...
                 }
             }
             const plateauPercentage = (plateauCount / (losses.length - 1) * 100).toFixed(1);
-            
-            const systemPrompt = `You are an expert machine learning engineer specializing in neural network training optimization. You have extensive experience analyzing training curves, identifying convergence patterns, and diagnosing training issues. Your role is to provide actionable, practical advice based on training metrics.
 
-Key expertise areas:
-- Loss curve analysis and convergence detection
-- Learning rate scheduling and optimization
-- Overfitting/underfitting diagnosis
-- Training stability assessment
-- Hyperparameter tuning recommendations
-
-When analyzing training data:
-1. Be specific and quantitative in your assessments
-2. Identify both positive aspects and areas of concern
-3. Provide clear, actionable recommendations
-4. Explain the reasoning behind your suggestions
-5. Consider the practical implications of your advice
-
-Your analysis should be thorough but concise, focusing on insights that will help improve training outcomes.`;
+            const systemPrompt = document.getElementById('systemPrompt').value;
 
             const prompt = `Analyze this neural network training data and provide expert insights:
 
