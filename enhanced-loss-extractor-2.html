@@ -494,6 +494,58 @@ Waiting for connection test...
         function getOllamaUrl() {
             return document.getElementById('ollamaUrl').value.trim();
         }
+
+        async function testOllamaConnection(silent = false) {
+            const url = getOllamaUrl();
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = '🔄 Testing...';
+            try {
+                const response = await fetch(`${url}/api/tags`, { method: 'GET', mode: 'cors' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                statusEl.textContent = '✅ Connected';
+                debugLog(`✓ Connected to Ollama at ${url}`, 'success');
+                return true;
+            } catch (err) {
+                statusEl.textContent = '❌ Failed';
+                debugLog(`Connection failed: ${err.message}`, 'error');
+                if (!silent) alert('Failed to connect to Ollama. See debug log for details.');
+                return false;
+            }
+        }
+
+        async function listModels() {
+            if (!(await testOllamaConnection(true))) return;
+            const url = getOllamaUrl();
+            try {
+                const response = await fetch(`${url}/api/tags`, { method: 'GET', mode: 'cors' });
+                const data = await response.json();
+                debugLog('Available models:', 'info');
+                data.models.forEach(m => debugLog(`- ${m.name}`, 'info'));
+            } catch (err) {
+                debugLog(`Listing models failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function testGenerate() {
+            if (!(await testOllamaConnection(true))) return;
+            const url = getOllamaUrl();
+            const testBody = {
+                model: 'tinyllama:latest',
+                prompt: 'Hello',
+                stream: false
+            };
+            try {
+                const response = await fetch(`${url}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testBody)
+                });
+                const data = await response.json();
+                debugLog(`Generate test successful: ${data.response?.slice(0,30)}...`, 'success');
+            } catch (err) {
+                debugLog(`Generate test failed: ${err.message}`, 'error');
+            }
+        }
         
         function extractLosses() {
             const logInput = document.getElementById('logInput').value;
