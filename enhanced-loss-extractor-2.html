@@ -437,6 +437,19 @@ Waiting for connection test...
                 <button onclick="exportJSON()">📋 Export JSON</button>
                 <button onclick="exportAnalytics()">📑 Full Report</button>
             </div>
+
+            <div class="section-header">🤖 AI Training Insights</div>
+            <div class="analysis-panel">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+                    <label for="ollamaModel" style="font-weight: bold;">Model:</label>
+                    <input id="ollamaModel" type="text" value="tinyllama:latest"
+                           style="padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace; width: 200px;">
+                    <button id="ollamaBtn" onclick="analyzeWithOllama()" style="background: #6f42c1;">🤖 Analyze with Ollama</button>
+                    <span id="ollamaStatus" style="font-weight: bold;"></span>
+                    <button id="copyAIBtn" onclick="copyAIAnalysis()" style="display: none;">📋 Copy Analysis</button>
+                </div>
+                <div id="aiAnalysis" class="output" style="display: none;"></div>
+            </div>
         </div>
     </div>
 
