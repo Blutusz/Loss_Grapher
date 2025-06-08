@@ -332,57 +332,6 @@ Supports formats like:
             <button class="primary-btn" onclick="extractLosses()">🔍 Analyze Training Log</button>
         </div>
         
-        <details class="ollama-config" style="margin-top: 30px;">
-            <summary style="cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; font-weight: bold; user-select: none;">
-                ⚙️ Ollama Configuration & Testing
-            </summary>
-            <div style="padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px; margin-top: -2px;">
-                <p style="margin: 0 0 20px 0; color: #666;">
-                    Configure and test your Ollama connection before analyzing training data. 
-                    The debug log shows detailed connection information and errors.
-                </p>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ollama Server URL:</label>
-                    <input type="text" id="ollamaUrl" value="http://192.168.47.237:11434" 
-                           style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace;">
-                </div>
-                
-                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
-                    <button onclick="testOllamaConnection()" style="background: #6c757d;">
-                        🔌 Test Connection
-                    </button>
-                    <button onclick="listModels()" style="background: #17a2b8;">
-                        📋 List Models
-                    </button>
-                    <button onclick="testGenerate()" style="background: #ffc107; color: #333;">
-                        🧪 Test Generate
-                    </button>
-                    <button onclick="clearDebugLog()" style="background: #dc3545;">
-                        🗑️ Clear Log
-                    </button>
-                    <span id="connectionStatus" style="font-weight: bold;"></span>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Debug Log:</label>
-                    <div id="debugLog" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; 
-                                             font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; 
-                                             height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4;">Ollama Debug Console initialized...
-Waiting for connection test...
-                    </div>
-                </div>
-                
-                <div style="background: #e9ecef; padding: 15px; border-radius: 6px;">
-                    <strong>Quick Setup Guide:</strong>
-                    <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
-                        <li>Start Ollama with CORS: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">OLLAMA_ORIGINS="*" ollama serve</code></li>
-                        <li>Pull models: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">ollama pull gemma3:27b</code></li>
-                        <li>Test connection using the button above</li>
-                        <li>If connection fails, check the debug log for details</li>
-                    </ol>
-                </div>
-            </div>
-        </details>
         
         <div id="mainContent" class="hidden">
             <div class="section-header">📈 Loss Visualization</div>
@@ -438,6 +387,57 @@ Waiting for connection test...
                 <button onclick="exportAnalytics()">📑 Full Report</button>
             </div>
         </div>
+        <details class="ollama-config" style="margin-top: 30px;">
+            <summary style="cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; font-weight: bold; user-select: none;">
+                ⚙️ Ollama Configuration & Testing
+            </summary>
+            <div style="padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px; margin-top: -2px;">
+                <p style="margin: 0 0 20px 0; color: #666;">
+                    Configure and test your Ollama connection before analyzing training data. 
+                    The debug log shows detailed connection information and errors.
+                </p>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ollama Server URL:</label>
+                    <input type="text" id="ollamaUrl" value="http://192.168.47.237:11434" 
+                           style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace;">
+                </div>
+                
+                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                    <button onclick="testOllamaConnection()" style="background: #6c757d;">
+                        🔌 Test Connection
+                    </button>
+                    <button onclick="listModels()" style="background: #17a2b8;">
+                        📋 List Models
+                    </button>
+                    <button onclick="testGenerate()" style="background: #ffc107; color: #333;">
+                        🧪 Test Generate
+                    </button>
+                    <button onclick="clearDebugLog()" style="background: #dc3545;">
+                        🗑️ Clear Log
+                    </button>
+                    <span id="connectionStatus" style="font-weight: bold;"></span>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Debug Log:</label>
+                    <div id="debugLog" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; 
+                                             font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; 
+                                             height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4;">Ollama Debug Console initialized...
+Waiting for connection test...
+                    </div>
+                </div>
+                
+                <div style="background: #e9ecef; padding: 15px; border-radius: 6px;">
+                    <strong>Quick Setup Guide:</strong>
+                    <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Start Ollama with CORS: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">OLLAMA_ORIGINS="*" ollama serve</code></li>
+                        <li>Pull models: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">ollama pull gemma3:27b</code></li>
+                        <li>Test connection using the button above</li>
+                        <li>If connection fails, check the debug log for details</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
     </div>
 
     <script>
