@@ -314,7 +314,7 @@
     <div class="container">
         <h1>📊 Training Loss Analyzer</h1>
         
-        <textarea id="logInput" placeholder="Paste your training log here...
+        <textarea id="logInput" placeholder="Paste your training log here...">
 
 Example:
 2025-06-06_model:  15%|███████ | 2359/16000 [39:37<2:24:39,  1.57it/s, lr: 1.0e-04 loss: 1.758e-01]
@@ -325,7 +325,8 @@ Supports formats like:
 • model_name: 15%|███ | 2359/16000 [39:37<2:24:39, 1.57it/s, loss: 1.758e-01]
 • loss: 1.758e-01 - 2359/16000
 
-💡 Tip: You can also drag and drop a log file into this area!></textarea>
+💡 Tip: You can also drag and drop a log file into this area!
+        </textarea>
         
         <div style="text-align: center;">
             <button class="primary-btn" onclick="extractLosses()">🔍 Analyze Training Log</button>
@@ -492,6 +493,58 @@ Waiting for connection test...
         
         function getOllamaUrl() {
             return document.getElementById('ollamaUrl').value.trim();
+        }
+
+        async function testOllamaConnection(silent = false) {
+            const url = getOllamaUrl();
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = '🔄 Testing...';
+            try {
+                const response = await fetch(`${url}/api/tags`, { method: 'GET', mode: 'cors' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                statusEl.textContent = '✅ Connected';
+                debugLog(`✓ Connected to Ollama at ${url}`, 'success');
+                return true;
+            } catch (err) {
+                statusEl.textContent = '❌ Failed';
+                debugLog(`Connection failed: ${err.message}`, 'error');
+                if (!silent) alert('Failed to connect to Ollama. See debug log for details.');
+                return false;
+            }
+        }
+
+        async function listModels() {
+            if (!(await testOllamaConnection(true))) return;
+            const url = getOllamaUrl();
+            try {
+                const response = await fetch(`${url}/api/tags`, { method: 'GET', mode: 'cors' });
+                const data = await response.json();
+                debugLog('Available models:', 'info');
+                data.models.forEach(m => debugLog(`- ${m.name}`, 'info'));
+            } catch (err) {
+                debugLog(`Listing models failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function testGenerate() {
+            if (!(await testOllamaConnection(true))) return;
+            const url = getOllamaUrl();
+            const testBody = {
+                model: 'tinyllama:latest',
+                prompt: 'Hello',
+                stream: false
+            };
+            try {
+                const response = await fetch(`${url}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testBody)
+                });
+                const data = await response.json();
+                debugLog(`Generate test successful: ${data.response?.slice(0,30)}...`, 'success');
+            } catch (err) {
+                debugLog(`Generate test failed: ${err.message}`, 'error');
+            }
         }
         
         function extractLosses() {
