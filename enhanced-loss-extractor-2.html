@@ -631,8 +631,14 @@ Waiting for connection test...
                 if (value === null || value === undefined) return;
                 const xScale = chart.scales.x;
                 if (!xScale) return;
-                const x = xScale.getPixelForValue(value);
-                if (x === undefined) return;
+                let x = xScale.getPixelForValue(value);
+                if (x === undefined || isNaN(x)) {
+                    const labels = chart.data.labels || [];
+                    const idx = labels.indexOf(value);
+                    if (idx === -1) return;
+                    x = xScale.getPixelForTick(idx);
+                }
+                if (x === undefined || isNaN(x)) return;
                 const ctx = chart.ctx;
                 ctx.save();
                 ctx.strokeStyle = options.color || '#666';
