@@ -13,7 +13,8 @@ You can overlay sample images generated during training:
    - `1749459275386__000028500_0.png` (step 28500)
    - `1749459275386__000028500_1.png`
    If only one number is found in the filename, that number is used as the step.
-   The grapher assumes images are generated **after** the logged step completes, so each filename's step is mapped to `step - 1` when overlaying.
+   The grapher now uses the step number as-is. If your images are generated after the
+   loss line for a step, subtract one when naming the files so the markers align.
 2. Click **Upload Samples** and select one or more images. You can pick multiple files at once.
 3. Markers will appear on the loss chart at steps where images are available. Click a marker to preview the first four images for that step.
 

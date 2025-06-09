@@ -45,7 +45,7 @@ function extractStepNumber(filename){
   const nums = filename.match(/\d+/g);
   if(!nums) return null;
   const rawStep = nums.length>1?parseInt(nums[1]):parseInt(nums[0]);
-  return rawStep>0?rawStep-1:rawStep;
+  return rawStep;
 }
 function handleImageUpload(e){
   const files = Array.from(e.target.files);
