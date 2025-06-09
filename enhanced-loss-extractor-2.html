@@ -571,13 +571,18 @@ Waiting for connection test...
         let lastAIAnalysis = '';
         let chatHistory = [];
 
+        function extractStepNumber(filename) {
+            const numbers = filename.match(/\d+/g);
+            if (!numbers) return null;
+            const index = numbers.length > 1 ? 1 : 0;
+            return parseInt(numbers[index]);
+        }
+
         function handleImageUpload(event) {
             const files = Array.from(event.target.files);
             files.forEach(file => {
-                const matches = file.name.match(/\d+/g);
-                if (matches && matches.length > 0) {
-                    const index = matches.length > 1 ? 1 : 0;
-                    const step = parseInt(matches[index]);
+                const step = extractStepNumber(file.name);
+                if (step !== null) {
                     const reader = new FileReader();
                     reader.onload = e => {
                         if (!stepImages[step]) stepImages[step] = [];

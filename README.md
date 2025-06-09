@@ -11,6 +11,6 @@ You can overlay sample images generated during training:
    - `1749459275386__000028500_1.png`
    If only one number is found in the filename, that number is used as the step.
 2. Click **Upload Samples** and select one or more images. You can pick multiple files at once.
-3. Markers will appear on the loss chart at steps where images are available. Click a marker to preview up to four images for that step.
+3. Markers will appear on the loss chart at steps where images are available. Click a marker to preview the first four images for that step.
 
 Use the HTML file directly in your browser to analyze your logs.
