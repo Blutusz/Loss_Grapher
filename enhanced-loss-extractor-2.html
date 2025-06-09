@@ -577,6 +577,7 @@ Waiting for connection test...
         let rateChart = null;
         let chartData = [];
         const stepImages = {};
+        let imageLoadPromise = Promise.resolve();
         let showTrendline = false;
         let autoYScale = true;
         let movingAverageWindow = 0;
@@ -586,24 +587,31 @@ Waiting for connection test...
             const numbers = filename.match(/\d+/g);
             if (!numbers) return null;
             const index = numbers.length > 1 ? 1 : 0;
-            return parseInt(numbers[index]);
+            const rawStep = parseInt(numbers[index]);
+            return rawStep > 0 ? rawStep - 1 : rawStep;
         }
 
         function handleImageUpload(event) {
             const files = Array.from(event.target.files);
-            files.forEach(file => {
+            const loaders = files.map(file => new Promise(resolve => {
                 const step = extractStepNumber(file.name);
-                if (step !== null) {
-                    const reader = new FileReader();
-                    reader.onload = e => {
-                        if (!stepImages[step]) stepImages[step] = [];
-                        if (stepImages[step].length < 4) {
-                            stepImages[step].push(e.target.result);
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+                if (step === null) return resolve();
+                const reader = new FileReader();
+                reader.onload = e => {
+                    if (!stepImages[step]) stepImages[step] = [];
+                    if (stepImages[step].length < 4) {
+                        stepImages[step].push(e.target.result);
+                    }
+                    if (chartData.length > 0) {
+                        createChart();
+                        createRateChart();
+                    }
+                    resolve();
+                };
+                reader.onerror = () => resolve();
+                reader.readAsDataURL(file);
+            }));
+            imageLoadPromise = Promise.all([imageLoadPromise, ...loaders]).then(() => {});
         }
 
         function closeImageOverlay() {
@@ -699,7 +707,7 @@ Waiting for connection test...
             }
         }
         
-        function extractLosses() {
+        async function extractLosses() {
             const logInput = document.getElementById('logInput').value;
             const mainContent = document.getElementById('mainContent');
             
@@ -739,7 +747,9 @@ Waiting for connection test...
                 alert('No loss values found in the log data. Make sure your log contains lines with "loss:" and step information.');
                 return;
             }
-            
+
+            await imageLoadPromise;
+
             chartData = lossData;
             mainContent.classList.remove('hidden');
             

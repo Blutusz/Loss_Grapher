@@ -40,26 +40,32 @@
 <script>
 let chartData = [];
 const stepImages = {};
+let imageLoadPromise = Promise.resolve();
 function extractStepNumber(filename){
   const nums = filename.match(/\d+/g);
   if(!nums) return null;
-  return nums.length>1?parseInt(nums[1]):parseInt(nums[0]);
+  const rawStep = nums.length>1?parseInt(nums[1]):parseInt(nums[0]);
+  return rawStep>0?rawStep-1:rawStep;
 }
 function handleImageUpload(e){
   const files = Array.from(e.target.files);
-  files.forEach(f=>{
+  const loaders = files.map(f=>new Promise(resolve=>{
     const step = extractStepNumber(f.name);
-    if(step!==null){
-      const reader = new FileReader();
-      reader.onload=ev=>{
-        if(!stepImages[step]) stepImages[step]=[];
-        if(stepImages[step].length<4) stepImages[step].push(ev.target.result);
-      };
-      reader.readAsDataURL(f);
-    }
-  });
+    if(step===null) return resolve();
+    const reader = new FileReader();
+    reader.onload=ev=>{
+      if(!stepImages[step]) stepImages[step]=[];
+      if(stepImages[step].length<4) stepImages[step].push(ev.target.result);
+      if(chartData.length) renderChart();
+      resolve();
+    };
+    reader.onerror=()=>resolve();
+    reader.readAsDataURL(f);
+  }));
+  imageLoadPromise = Promise.all([imageLoadPromise, ...loaders]).then(()=>{});
 }
-function extractLosses(){
+async function extractLosses(){
+  await imageLoadPromise;
   const lines = document.getElementById('logInput').value.split('\n');
   const lossPattern=/loss:\s*([0-9]+\.?[0-9]*(?:e[+-]?[0-9]+)?)/;
   const stepPattern=/(\d+)\/(\d+)/;
