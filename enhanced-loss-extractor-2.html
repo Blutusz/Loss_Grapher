@@ -351,6 +351,30 @@
             background-position: center;
             z-index: 1000;
         }
+        #imageSliderSection {
+            margin: 20px 0;
+            text-align: center;
+        }
+        #imageSlider {
+            width: 100%;
+        }
+        #sliderPreview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        #sliderThumbnails img {
+            max-width: 80px;
+            max-height: 80px;
+            margin: 5px;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #sliderThumbnails img.active {
+            border-color: #007bff;
+        }
     </style>
 </head>
 <body>
@@ -386,7 +410,15 @@ Supports formats like:
                 <div id="imagePreview" class="image-preview"></div>
                 <div class="zoom-info">💡 Use mouse wheel to zoom, drag to pan</div>
             </div>
-            
+
+            <div id="imageSliderSection" class="hidden">
+                <input type="range" id="imageSlider" min="0" max="0" value="0" oninput="updateSliderPreview()">
+                <div id="sliderPreview">
+                    <img id="sliderImage" style="display:none;">
+                    <div id="sliderThumbnails"></div>
+                </div>
+            </div>
+
             <div class="controls-row">
                 <div class="control-group">
                     <label>Moving Average:</label>
@@ -583,6 +615,7 @@ Waiting for connection test...
         let movingAverageWindow = 0;
         let lastAIAnalysis = '';
         let chatHistory = [];
+        let sliderSteps = [];
         function extractStepNumber(filename) {
             const numbers = filename.match(/\d+/g);
             if (!numbers) return null;
@@ -611,7 +644,9 @@ Waiting for connection test...
                 reader.onerror = () => resolve();
                 reader.readAsDataURL(file);
             }));
-            imageLoadPromise = Promise.all([imageLoadPromise, ...loaders]).then(() => {});
+            imageLoadPromise = Promise.all([imageLoadPromise, ...loaders]).then(() => {
+                updateImageSlider();
+            });
         }
 
         function closeImageOverlay() {
@@ -644,6 +679,45 @@ Waiting for connection test...
 
         function hideImagePreview() {
             previewDiv.style.display = 'none';
+        }
+
+        function updateImageSlider() {
+            const container = document.getElementById('imageSliderSection');
+            const slider = document.getElementById('imageSlider');
+            sliderSteps = Object.keys(stepImages).map(s => parseInt(s)).sort((a,b) => a - b);
+            if (sliderSteps.length > 0) {
+                slider.min = 0;
+                slider.max = sliderSteps.length - 1;
+                slider.value = 0;
+                container.classList.remove('hidden');
+                updateSliderPreview();
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('sliderPreview').style.display = 'none';
+            }
+        }
+
+        function updateSliderPreview() {
+            const idx = parseInt(document.getElementById('imageSlider').value);
+            const step = sliderSteps[idx];
+            displaySliderImage(step, 0);
+        }
+
+        function displaySliderImage(step, imgIdx) {
+            const imgs = stepImages[step];
+            const preview = document.getElementById('sliderPreview');
+            const bigImg = document.getElementById('sliderImage');
+            const thumbs = document.getElementById('sliderThumbnails');
+            if (!imgs || imgs.length === 0) {
+                preview.style.display = 'none';
+                return;
+            }
+            preview.style.display = 'block';
+            bigImg.src = imgs[imgIdx];
+            bigImg.style.display = 'block';
+            thumbs.innerHTML = imgs.map((src, i) =>
+                `<img src="${src}" class="${i===imgIdx?'active':''}" onclick="displaySliderImage(${step}, ${i})">`
+            ).join('');
         }
         
         function clearDebugLog() {
@@ -774,6 +848,7 @@ Waiting for connection test...
             updateMainStats();
             createChart();
             createRateChart();
+            updateImageSlider();
             
             // Auto-test Ollama connection if available
             setTimeout(() => {
