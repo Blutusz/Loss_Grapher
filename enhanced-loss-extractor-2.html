@@ -582,11 +582,6 @@ Waiting for connection test...
             files.forEach(file => {
                 const step = extractStepNumber(file.name);
                 if (step !== null) {
-                    // your logic here
-                }
-            });
-        }
-
                     const reader = new FileReader();
                     reader.onload = e => {
                         if (!stepImages[step]) stepImages[step] = [];
