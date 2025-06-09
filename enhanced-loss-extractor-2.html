@@ -622,6 +622,30 @@ Waiting for connection test...
         let chatHistory = [];
         let sliderSteps = [];
         let lockedImageIndex = 0;
+        let sliderIndicatorValue = null;
+
+        const sliderIndicatorPlugin = {
+            id: 'sliderIndicator',
+            afterDraw(chart, args, options) {
+                const value = options.value;
+                if (value === null || value === undefined) return;
+                const xScale = chart.scales.x;
+                if (!xScale) return;
+                const x = xScale.getPixelForValue(value);
+                if (x === undefined) return;
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.strokeStyle = options.color || '#666';
+                ctx.lineWidth = options.lineWidth || 2;
+                ctx.beginPath();
+                ctx.moveTo(x, chart.chartArea.top);
+                ctx.lineTo(x, chart.chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+            }
+        };
+        Chart.register(sliderIndicatorPlugin);
+
         function extractStepNumber(filename) {
             const numbers = filename.match(/\d+/g);
             if (!numbers) return null;
@@ -711,7 +735,16 @@ Waiting for connection test...
             const step = sliderSteps[idx];
             const indicator = document.getElementById('sliderStepIndicator');
             indicator.textContent = `Step ${step}`;
+            updateChartIndicator(step);
             displaySliderImage(step, lockedImageIndex);
+        }
+
+        function updateChartIndicator(step) {
+            sliderIndicatorValue = step;
+            if (lossChart) {
+                lossChart.options.plugins.sliderIndicator.value = step;
+                lossChart.update('none');
+            }
         }
 
         function displaySliderImage(step, imgIdx) {
@@ -1094,6 +1127,7 @@ Waiting for connection test...
                         }
                     },
                     plugins: {
+                        sliderIndicator: { value: sliderIndicatorValue },
                         legend: {
                             display: true,
                             position: 'top',
