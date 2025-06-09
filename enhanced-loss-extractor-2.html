@@ -623,20 +623,27 @@ Waiting for connection test...
         let sliderSteps = [];
         let lockedImageIndex = 0;
         let sliderIndicatorValue = null;
+        let sliderIndicatorIndex = null;
 
         const sliderIndicatorPlugin = {
             id: 'sliderIndicator',
             afterDraw(chart, args, options) {
-                const value = options.value;
-                if (value === null || value === undefined) return;
                 const xScale = chart.scales.x;
                 if (!xScale) return;
-                let x = xScale.getPixelForValue(value);
-                if (x === undefined || isNaN(x)) {
-                    const labels = chart.data.labels || [];
-                    const idx = labels.indexOf(value);
-                    if (idx === -1) return;
-                    x = xScale.getPixelForTick(idx);
+
+                let x;
+                if (options.index !== null && options.index !== undefined) {
+                    x = xScale.getPixelForTick(options.index);
+                } else {
+                    const value = options.value;
+                    if (value === null || value === undefined) return;
+                    x = xScale.getPixelForValue(value);
+                    if (x === undefined || isNaN(x)) {
+                        const labels = chart.data.labels || [];
+                        const idx = labels.indexOf(value);
+                        if (idx === -1) return;
+                        x = xScale.getPixelForTick(idx);
+                    }
                 }
                 if (x === undefined || isNaN(x)) return;
                 const ctx = chart.ctx;
@@ -721,7 +728,10 @@ Waiting for connection test...
             const container = document.getElementById('imageSliderSection');
             const slider = document.getElementById('imageSlider');
             const indicator = document.getElementById('sliderStepIndicator');
-            sliderSteps = Object.keys(stepImages).map(s => parseInt(s)).sort((a,b) => a - b);
+            sliderSteps = Object.keys(stepImages)
+                .map(s => parseInt(s))
+                .filter(step => chartData.some(item => item.step === step))
+                .sort((a,b) => a - b);
             if (sliderSteps.length > 0) {
                 slider.min = 0;
                 slider.max = sliderSteps.length - 1;
@@ -747,8 +757,10 @@ Waiting for connection test...
 
         function updateChartIndicator(step) {
             sliderIndicatorValue = step;
+            sliderIndicatorIndex = chartData.findIndex(item => item.step === step);
             if (lossChart) {
-                lossChart.options.plugins.sliderIndicator.value = step;
+                const idx = sliderIndicatorIndex !== -1 ? sliderIndicatorIndex : null;
+                lossChart.options.plugins.sliderIndicator.index = idx;
                 lossChart.update('none');
             }
         }
@@ -1133,7 +1145,7 @@ Waiting for connection test...
                         }
                     },
                     plugins: {
-                        sliderIndicator: { value: sliderIndicatorValue },
+                        sliderIndicator: { index: sliderIndicatorIndex },
                         legend: {
                             display: true,
                             position: 'top',
