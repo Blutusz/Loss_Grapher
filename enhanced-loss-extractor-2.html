@@ -340,13 +340,16 @@
             margin: 5px;
             border-radius: 4px;
         }
-        #imagePreview {
-            margin-top: 20px;
-        }
-        #imagePreview img {
-            max-width: 200px;
-            margin: 5px;
-            border-radius: 4px;
+        .image-preview {
+            position: absolute;
+            display: none;
+            pointer-events: none;
+            width: 200px;
+            height: 200px;
+            border: 1px solid #ccc;
+            background-size: cover;
+            background-position: center;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -378,12 +381,9 @@ Supports formats like:
 
         <div id="mainContent" class="hidden">
             <div class="section-header">📈 Loss Visualization</div>
-            <div id="imagePreview" class="hidden">
-                <div id="imagePreviewTitle" style="font-weight:bold; margin-bottom:10px;"></div>
-                <div id="imagePreviewContent" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
-            </div>
             <div class="chart-container">
                 <canvas id="lossChart"></canvas>
+                <div id="imagePreview" class="image-preview"></div>
                 <div class="zoom-info">💡 Use mouse wheel to zoom, drag to pan</div>
             </div>
             
@@ -628,22 +628,19 @@ Waiting for connection test...
             content.innerHTML = images.map(src => `<img src="${src}">`).join("");
             overlay.classList.remove('hidden');
         }
-        function showImagePreview(step) {
-            const images = stepImages[step];
-            const container = document.getElementById("imagePreview");
-            const title = document.getElementById("imagePreviewTitle");
-            const content = document.getElementById("imagePreviewContent");
-            if (!images) {
-                container.classList.add("hidden");
-                return;
-            }
-            title.textContent = `Step ${step}`;
-            content.innerHTML = images.map(src => `<img src="${src}">`).join("");
-            container.classList.remove("hidden");
+        const previewDiv = document.getElementById('imagePreview');
+
+        function showImagePreview(evt, step) {
+            const imgIndex = step + 1;
+            const url = `/images/step_${imgIndex}.png`;
+            previewDiv.style.backgroundImage = `url(${url})`;
+            previewDiv.style.left = evt.native.x + 'px';
+            previewDiv.style.top = evt.native.y + 'px';
+            previewDiv.style.display = 'block';
         }
 
         function hideImagePreview() {
-            document.getElementById("imagePreview").classList.add("hidden");
+            previewDiv.style.display = 'none';
         }
         
         function clearDebugLog() {
@@ -962,22 +959,21 @@ Waiting for connection test...
                         }
                     },
                     onHover: (evt, elements) => {
-                        if (!elements.length) {
-                            hideImagePreview();
-                            return;
-                        }
-                        const el = elements[0];
-                        const ds = lossChart.data.datasets[el.datasetIndex];
-                        if (ds.label === "Samples") {
-                            const step = ds.data[el.index].x;
-                            showImagePreview(step);
+                        const sampleEl = elements.find(el =>
+                            lossChart.data.datasets[el.datasetIndex].label === 'Samples'
+                        );
+                        if (sampleEl) {
+                            const step = lossChart.data.datasets[sampleEl.datasetIndex]
+                                                .data[sampleEl.index].x;
+                            showImagePreview(evt, step);
                         } else {
                             hideImagePreview();
                         }
                     },
+                    onLeave: hideImagePreview,
                     interaction: {
-                        mode: 'index',
-                        intersect: false,
+                        mode: 'nearest',
+                        intersect: true
                     },
                     scales: {
                         x: {
