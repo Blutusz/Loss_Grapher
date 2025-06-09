@@ -54,6 +54,7 @@ function handleImageUpload(e){
       reader.onload=ev=>{
         if(!stepImages[step]) stepImages[step]=[];
         if(stepImages[step].length<4) stepImages[step].push(ev.target.result);
+        if(chartData.length>0) renderChart();
       };
       reader.readAsDataURL(f);
     }

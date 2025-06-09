@@ -600,6 +600,9 @@ Waiting for connection test...
                         if (stepImages[step].length < 4) {
                             stepImages[step].push(e.target.result);
                         }
+                        if (chartData.length > 0) {
+                            createChart();
+                        }
                     };
                     reader.readAsDataURL(file);
                 }
