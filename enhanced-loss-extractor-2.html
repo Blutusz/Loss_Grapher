@@ -570,13 +570,23 @@ Waiting for connection test...
         let movingAverageWindow = 0;
         let lastAIAnalysis = '';
         let chatHistory = [];
+        function extractStepNumber(filename) {
+            const numbers = filename.match(/\d+/g);
+            if (!numbers) return null;
+            const index = numbers.length > 1 ? 1 : 0;
+            return parseInt(numbers[index]);
+        }
 
         function handleImageUpload(event) {
             const files = Array.from(event.target.files);
             files.forEach(file => {
-                const match = file.name.match(/(\d+)/);
-                if (match) {
-                    const step = parseInt(match[1]);
+                const step = extractStepNumber(file.name);
+                if (step !== null) {
+                    // your logic here
+                }
+            });
+        }
+
                     const reader = new FileReader();
                     reader.onload = e => {
                         if (!stepImages[step]) stepImages[step] = [];
