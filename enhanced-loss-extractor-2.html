@@ -628,12 +628,15 @@ Waiting for connection test...
             content.innerHTML = images.map(src => `<img src="${src}">`).join("");
             overlay.classList.remove('hidden');
         }
-        const previewDiv = document.getElementById('imagePreview');
+       const previewDiv = document.getElementById('imagePreview');
 
         function showImagePreview(evt, step) {
-            const imgIndex = step + 1;
-            const url = `/images/step_${imgIndex}.png`;
-            previewDiv.style.backgroundImage = `url(${url})`;
+            const imgs = stepImages[step];
+            if (!imgs || imgs.length === 0) {
+                hideImagePreview();
+                return;
+            }
+            previewDiv.style.backgroundImage = `url(${imgs[0]})`;
             previewDiv.style.left = evt.native.x + 'px';
             previewDiv.style.top = evt.native.y + 'px';
             previewDiv.style.display = 'block';
