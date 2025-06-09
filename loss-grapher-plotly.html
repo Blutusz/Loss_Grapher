@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loss Grapher (Plotly)</title>
+  <script src="https://cdn.plot.ly/plotly-2.25.2.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-bottom: 10px;
+    }
+    #chart {
+      width: 100%;
+      height: 500px;
+    }
+    #imagePreview img {
+      max-width: 200px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+<h1>Training Loss Grapher (Plotly)</h1>
+<textarea id="logInput" placeholder="Paste training log..."></textarea>
+<div>
+  <button onclick="extractLosses()">Analyze Log</button>
+  <input type="file" id="imageInput" multiple accept="image/*" onchange="handleImageUpload(event)">
+</div>
+<div id="chart"></div>
+<div id="imagePreview"></div>
+<script>
+let chartData = [];
+const stepImages = {};
+function extractStepNumber(filename){
+  const nums = filename.match(/\d+/g);
+  if(!nums) return null;
+  return nums.length>1?parseInt(nums[1]):parseInt(nums[0]);
+}
+function handleImageUpload(e){
+  const files = Array.from(e.target.files);
+  files.forEach(f=>{
+    const step = extractStepNumber(f.name);
+    if(step!==null){
+      const reader = new FileReader();
+      reader.onload=ev=>{
+        if(!stepImages[step]) stepImages[step]=[];
+        if(stepImages[step].length<4) stepImages[step].push(ev.target.result);
+      };
+      reader.readAsDataURL(f);
+    }
+  });
+}
+function extractLosses(){
+  const lines = document.getElementById('logInput').value.split('\n');
+  const lossPattern=/loss:\s*([0-9]+\.?[0-9]*(?:e[+-]?[0-9]+)?)/;
+  const stepPattern=/(\d+)\/(\d+)/;
+  chartData=[];
+  lines.forEach(line=>{
+    const lossMatch=line.match(lossPattern);
+    const stepMatch=line.match(stepPattern);
+    if(lossMatch && stepMatch){
+      chartData.push({step:parseInt(stepMatch[1]),loss:parseFloat(lossMatch[1])});
+    }
+  });
+  if(chartData.length===0){
+    alert('No loss data found');
+    return;
+  }
+  renderChart();
+}
+function renderChart(){
+  const steps=chartData.map(d=>d.step);
+  const losses=chartData.map(d=>d.loss);
+  const trace={
+    x:steps,
+    y:losses,
+    mode:'lines+markers',
+    name:'Loss'
+  };
+  const imgSteps=Object.keys(stepImages).map(s=>parseInt(s));
+  let imgTrace=null;
+  if(imgSteps.length){
+    const imgY=imgSteps.map(s=>{
+      const idx=steps.indexOf(s);
+      return idx!==-1?losses[idx]:null;
+    });
+    imgTrace={
+      x:imgSteps,
+      y:imgY,
+      mode:'markers',
+      marker:{size:10,color:'orange'},
+      name:'Samples',
+      customdata:imgSteps
+    };
+  }
+  const data=imgTrace?[trace,imgTrace]:[trace];
+  Plotly.newPlot('chart',data,{xaxis:{title:'Step'},yaxis:{title:'Loss'}});
+  const chartDiv=document.getElementById('chart');
+  chartDiv.on('plotly_click',data=>{
+    const pts=data.points[0];
+    if(pts.data.name==='Samples'){
+      const step=pts.customdata;
+      showImages(step);
+    }
+  });
+}
+function showImages(step){
+  const container=document.getElementById('imagePreview');
+  const imgs=stepImages[step];
+  if(!imgs){
+    container.innerHTML='';
+    return;
+  }
+  container.innerHTML=`<h3>Step ${step}</h3>`+imgs.map(src=>`<img src="${src}">`).join('');
+}
+</script>
+</body>
+</html>
