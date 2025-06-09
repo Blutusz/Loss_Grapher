@@ -308,6 +308,38 @@
             color: #333;
             font-weight: 600;
         }
+
+        #imageOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #imageOverlay.hidden {
+            display: none;
+        }
+
+        #imageOverlay .overlay-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+
+        #imageOverlay img {
+            max-width: 200px;
+            margin: 5px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -330,6 +362,9 @@ Supports formats like:
         
         <div style="text-align: center;">
             <button class="primary-btn" onclick="extractLosses()">🔍 Analyze Training Log</button>
+            <div style="margin-top: 10px;">
+                <input type="file" id="imageInput" multiple accept="image/*" onchange="handleImageUpload(event)">
+            </div>
         </div>
         
 
@@ -478,6 +513,16 @@ Waiting for connection test...
             </div>
         </details>
 
+        <div id="imageOverlay" class="hidden">
+            <div class="overlay-content">
+                <div style="text-align:right; margin-bottom:10px;">
+                    <button onclick="closeImageOverlay()">Close</button>
+                </div>
+                <div id="overlayTitle" style="font-weight:bold; margin-bottom:10px;"></div>
+                <div id="overlayContent" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+            </div>
+        </div>
+
         <script>
         // Debug logging function - defined first
         function debugLog(message, type = 'info') {
@@ -519,11 +564,45 @@ Waiting for connection test...
         let lossChart = null;
         let rateChart = null;
         let chartData = [];
+        const stepImages = {};
         let showTrendline = false;
         let autoYScale = true;
         let movingAverageWindow = 0;
         let lastAIAnalysis = '';
         let chatHistory = [];
+
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                const match = file.name.match(/(\d+)/);
+                if (match) {
+                    const step = parseInt(match[1]);
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        if (!stepImages[step]) stepImages[step] = [];
+                        if (stepImages[step].length < 4) {
+                            stepImages[step].push(e.target.result);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function closeImageOverlay() {
+            document.getElementById('imageOverlay').classList.add('hidden');
+        }
+
+        function showImages(step) {
+            const images = stepImages[step];
+            if (!images) return;
+            const overlay = document.getElementById('imageOverlay');
+            const title = document.getElementById('overlayTitle');
+            const content = document.getElementById('overlayContent');
+            title.textContent = `Step ${step}`;
+            content.innerHTML = images.map(src => `<img src="${src}">`).join('');
+            overlay.classList.remove('hidden');
+        }
         
         function clearDebugLog() {
             document.getElementById('debugLog').innerHTML = 'Debug log cleared.\n';
@@ -802,6 +881,28 @@ Waiting for connection test...
                     order: 1 // Draw first (on top)
                 });
             }
+
+            const imageSteps = Object.keys(stepImages).map(s => parseInt(s));
+            if (imageSteps.length > 0) {
+                const imageData = imageSteps.map(step => {
+                    const idx = steps.indexOf(step);
+                    if (idx !== -1) {
+                        return { x: step, y: losses[idx] };
+                    }
+                    return null;
+                }).filter(Boolean);
+                if (imageData.length > 0) {
+                    datasets.push({
+                        label: 'Samples',
+                        data: imageData,
+                        borderColor: 'transparent',
+                        backgroundColor: '#ffc107',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        order: 4
+                    });
+                }
+            }
             
             lossChart = new Chart(ctx, {
                 type: 'line',
@@ -812,6 +913,15 @@ Waiting for connection test...
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (!elements.length) return;
+                        const el = elements[0];
+                        const ds = lossChart.data.datasets[el.datasetIndex];
+                        if (ds.label === 'Samples') {
+                            const step = ds.data[el.index].x;
+                            showImages(step);
+                        }
+                    },
                     interaction: {
                         mode: 'index',
                         intersect: false,
