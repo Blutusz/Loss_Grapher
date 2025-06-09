@@ -746,7 +746,7 @@ Waiting for connection test...
         function displayResults() {
             const outputDiv = document.getElementById('output');
             const cleanedDiv = document.getElementById('cleanedOutput');
-            const displayLimit = 50;
+            const displayLimit = chartData.length; // show full data
             let html = '';
             let cleaned = '';
 
@@ -754,11 +754,6 @@ Waiting for connection test...
                 html += `${item.formatted}\n`;
                 cleaned += `${item.step}, ${item.lossValue}\n`;
             });
-
-            if (chartData.length > displayLimit) {
-                html += `\n... and ${chartData.length - displayLimit} more entries`;
-                cleaned += `\n... and ${chartData.length - displayLimit} more entries`;
-            }
 
             outputDiv.textContent = html;
             if (cleanedDiv) cleanedDiv.textContent = cleaned;
