@@ -358,6 +358,10 @@
         #imageSlider {
             width: 100%;
         }
+        #sliderStepIndicator {
+            margin-left: 10px;
+            font-weight: bold;
+        }
         #sliderPreview img {
             max-width: 100%;
             max-height: 400px;
@@ -413,6 +417,7 @@ Supports formats like:
 
             <div id="imageSliderSection" class="hidden">
                 <input type="range" id="imageSlider" min="0" max="0" value="0" oninput="updateSliderPreview()">
+                <span id="sliderStepIndicator" style="margin-left:10px;font-weight:bold;"></span>
                 <div id="sliderPreview">
                     <img id="sliderImage" style="display:none;">
                     <div id="sliderThumbnails"></div>
@@ -616,6 +621,7 @@ Waiting for connection test...
         let lastAIAnalysis = '';
         let chatHistory = [];
         let sliderSteps = [];
+        let lockedImageIndex = 0;
         function extractStepNumber(filename) {
             const numbers = filename.match(/\d+/g);
             if (!numbers) return null;
@@ -684,23 +690,28 @@ Waiting for connection test...
         function updateImageSlider() {
             const container = document.getElementById('imageSliderSection');
             const slider = document.getElementById('imageSlider');
+            const indicator = document.getElementById('sliderStepIndicator');
             sliderSteps = Object.keys(stepImages).map(s => parseInt(s)).sort((a,b) => a - b);
             if (sliderSteps.length > 0) {
                 slider.min = 0;
                 slider.max = sliderSteps.length - 1;
                 slider.value = 0;
                 container.classList.remove('hidden');
+                indicator.textContent = `Step ${sliderSteps[0]}`;
                 updateSliderPreview();
             } else {
                 container.classList.add('hidden');
                 document.getElementById('sliderPreview').style.display = 'none';
+                indicator.textContent = '';
             }
         }
 
         function updateSliderPreview() {
             const idx = parseInt(document.getElementById('imageSlider').value);
             const step = sliderSteps[idx];
-            displaySliderImage(step, 0);
+            const indicator = document.getElementById('sliderStepIndicator');
+            indicator.textContent = `Step ${step}`;
+            displaySliderImage(step, lockedImageIndex);
         }
 
         function displaySliderImage(step, imgIdx) {
@@ -713,10 +724,12 @@ Waiting for connection test...
                 return;
             }
             preview.style.display = 'block';
-            bigImg.src = imgs[imgIdx];
+            lockedImageIndex = imgIdx;
+            const safeIdx = Math.min(imgIdx, imgs.length - 1);
+            bigImg.src = imgs[safeIdx];
             bigImg.style.display = 'block';
             thumbs.innerHTML = imgs.map((src, i) =>
-                `<img src="${src}" class="${i===imgIdx?'active':''}" onclick="displaySliderImage(${step}, ${i})">`
+                `<img src="${src}" class="${i===safeIdx?'active':''}" onclick="displaySliderImage(${step}, ${i})">`
             ).join('');
         }
         
