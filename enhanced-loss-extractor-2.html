@@ -147,7 +147,8 @@
         }
         
         #lossChart {
-            height: 500px !important;
+            height: 60vh;
+            max-height: 500px;
         }
         
         .controls-row {
@@ -297,60 +298,12 @@
             margin-top: 10px;
         }
         
-        .zoom-info {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 10px;
-        }
         
         strong {
             color: #333;
             font-weight: 600;
         }
 
-        #imageOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        #imageOverlay.hidden {
-            display: none;
-        }
-
-        #imageOverlay .overlay-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 90%;
-            max-height: 90%;
-            overflow: auto;
-        }
-
-        #imageOverlay img {
-            max-width: 200px;
-            margin: 5px;
-            border-radius: 4px;
-        }
-        .image-preview {
-            position: absolute;
-            display: none;
-            pointer-events: none;
-            width: 200px;
-            height: 200px;
-            border: 1px solid #ccc;
-            background-size: cover;
-            background-position: center;
-            z-index: 1000;
-        }
         #imageSliderSection {
             margin: 20px 0;
             text-align: center;
@@ -411,8 +364,6 @@ Supports formats like:
             <div class="section-header">📈 Loss Visualization</div>
             <div class="chart-container">
                 <canvas id="lossChart"></canvas>
-                <div id="imagePreview" class="image-preview"></div>
-                <div class="zoom-info">💡 Use mouse wheel to zoom, drag to pan</div>
             </div>
 
             <div id="imageSliderSection" class="hidden">
@@ -562,15 +513,7 @@ Waiting for connection test...
             </div>
         </details>
 
-        <div id="imageOverlay" class="hidden">
-            <div class="overlay-content">
-                <div style="text-align:right; margin-bottom:10px;">
-                    <button onclick="closeImageOverlay()">Close</button>
-                </div>
-                <div id="overlayTitle" style="font-weight:bold; margin-bottom:10px;"></div>
-                <div id="overlayContent" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
-            </div>
-        </div>
+
 
         <script>
         // Debug logging function - defined first
@@ -692,37 +635,7 @@ Waiting for connection test...
             });
         }
 
-        function closeImageOverlay() {
-            document.getElementById('imageOverlay').classList.add('hidden');
-        }
 
-        function showImages(step) {
-            const images = stepImages[step];
-            if (!images) return;
-            const overlay = document.getElementById('imageOverlay');
-            const title = document.getElementById('overlayTitle');
-            const content = document.getElementById('overlayContent');
-            title.textContent = `Step ${step}`;
-            content.innerHTML = images.map(src => `<img src="${src}">`).join("");
-            overlay.classList.remove('hidden');
-        }
-       const previewDiv = document.getElementById('imagePreview');
-
-        function showImagePreview(evt, step) {
-            const imgs = stepImages[step];
-            if (!imgs || imgs.length === 0) {
-                hideImagePreview();
-                return;
-            }
-            previewDiv.style.backgroundImage = `url(${imgs[0]})`;
-            previewDiv.style.left = evt.native.x + 'px';
-            previewDiv.style.top = evt.native.y + 'px';
-            previewDiv.style.display = 'block';
-        }
-
-        function hideImagePreview() {
-            previewDiv.style.display = 'none';
-        }
 
         function updateImageSlider() {
             const container = document.getElementById('imageSliderSection');
@@ -1091,28 +1004,7 @@ Waiting for connection test...
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    onClick: (evt, elements) => {
-                        if (!elements.length) return;
-                        const el = elements[0];
-                        const ds = lossChart.data.datasets[el.datasetIndex];
-                        if (ds.label === 'Samples') {
-                            const step = ds.data[el.index].x;
-                            showImages(step);
-                        }
-                    },
-                    onHover: (evt, elements) => {
-                        const sampleEl = elements.find(el =>
-                            lossChart.data.datasets[el.datasetIndex].label === 'Samples'
-                        );
-                        if (sampleEl) {
-                            const step = lossChart.data.datasets[sampleEl.datasetIndex]
-                                                .data[sampleEl.index].x;
-                            showImagePreview(evt, step);
-                        } else {
-                            hideImagePreview();
-                        }
-                    },
-                    onLeave: hideImagePreview,
+                    // interactivity with sample images removed
                     interaction: {
                         mode: 'nearest',
                         intersect: true
