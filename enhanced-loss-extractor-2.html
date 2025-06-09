@@ -340,6 +340,14 @@
             margin: 5px;
             border-radius: 4px;
         }
+        #imagePreview {
+            margin-top: 20px;
+        }
+        #imagePreview img {
+            max-width: 200px;
+            margin: 5px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -370,6 +378,10 @@ Supports formats like:
 
         <div id="mainContent" class="hidden">
             <div class="section-header">📈 Loss Visualization</div>
+            <div id="imagePreview" class="hidden">
+                <div id="imagePreviewTitle" style="font-weight:bold; margin-bottom:10px;"></div>
+                <div id="imagePreviewContent" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+            </div>
             <div class="chart-container">
                 <canvas id="lossChart"></canvas>
                 <div class="zoom-info">💡 Use mouse wheel to zoom, drag to pan</div>
@@ -605,8 +617,25 @@ Waiting for connection test...
             const title = document.getElementById('overlayTitle');
             const content = document.getElementById('overlayContent');
             title.textContent = `Step ${step}`;
-            content.innerHTML = images.map(src => `<img src="${src}">`).join('');
+            content.innerHTML = images.map(src => `<img src="${src}">`).join("");
             overlay.classList.remove('hidden');
+        }
+        function showImagePreview(step) {
+            const images = stepImages[step];
+            const container = document.getElementById("imagePreview");
+            const title = document.getElementById("imagePreviewTitle");
+            const content = document.getElementById("imagePreviewContent");
+            if (!images) {
+                container.classList.add("hidden");
+                return;
+            }
+            title.textContent = `Step ${step}`;
+            content.innerHTML = images.map(src => `<img src="${src}">`).join("");
+            container.classList.remove("hidden");
+        }
+
+        function hideImagePreview() {
+            document.getElementById("imagePreview").classList.add("hidden");
         }
         
         function clearDebugLog() {
@@ -920,6 +949,20 @@ Waiting for connection test...
                         if (ds.label === 'Samples') {
                             const step = ds.data[el.index].x;
                             showImages(step);
+                        }
+                    },
+                    onHover: (evt, elements) => {
+                        if (!elements.length) {
+                            hideImagePreview();
+                            return;
+                        }
+                        const el = elements[0];
+                        const ds = lossChart.data.datasets[el.datasetIndex];
+                        if (ds.label === "Samples") {
+                            const step = ds.data[el.index].x;
+                            showImagePreview(step);
+                        } else {
+                            hideImagePreview();
                         }
                     },
                     interaction: {
