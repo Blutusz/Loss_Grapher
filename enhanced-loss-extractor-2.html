@@ -558,6 +558,15 @@ Waiting for connection test...
         let chartData = [];
         const stepImages = {};
         let imageLoadPromise = Promise.resolve();
+        function filterOutliers(data) {
+            if (data.length < 3) return data.filter(d => Number.isFinite(d.lossValue) && d.lossValue >= 0);
+            const valid = data.filter(d => Number.isFinite(d.lossValue) && d.lossValue >= 0);
+            const vals = valid.map(d => d.lossValue);
+            const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+            const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+            if (std === 0) return valid;
+            return valid.filter(d => Math.abs(d.lossValue - mean) <= 3 * std);
+        }
         let showTrendline = false;
         let autoYScale = true;
         let movingAverageWindow = 0;
@@ -793,15 +802,17 @@ Waiting for connection test...
                     }
                 }
             });
-            
-            if (lossData.length === 0) {
+
+            const filteredLossData = filterOutliers(lossData);
+
+            if (filteredLossData.length === 0) {
                 alert('No loss values found in the log data. Make sure your log contains lines with "loss:" and step information.');
                 return;
             }
 
             await imageLoadPromise;
 
-            chartData = lossData;
+            chartData = filteredLossData;
             mainContent.classList.remove('hidden');
             
             // Reset AI analysis
