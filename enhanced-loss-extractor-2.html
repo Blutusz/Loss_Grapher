@@ -820,6 +820,27 @@ Waiting for connection test...
 
             const filteredLossData = filterOutliers(lossData);
 
+            // Average duplicate steps
+            const stepGroups = {};
+            filteredLossData.forEach(item => {
+                if (!stepGroups[item.step]) {
+                    stepGroups[item.step] = { sum: item.lossValue, count: 1, total: item.total };
+                } else {
+                    stepGroups[item.step].sum += item.lossValue;
+                    stepGroups[item.step].count++;
+                }
+            });
+            const averagedData = Object.keys(stepGroups).map(step => {
+                const g = stepGroups[step];
+                const avg = g.sum / g.count;
+                return {
+                    formatted: `loss: ${avg} - ${step}/${g.total}`,
+                    lossValue: avg,
+                    step: parseInt(step),
+                    total: g.total
+                };
+            }).sort((a,b) => a.step - b.step);
+
             if (filteredLossData.length === 0) {
                 alert('No loss values found in the log data. Make sure your log contains lines with "loss:" and step information.');
                 return;
@@ -827,7 +848,7 @@ Waiting for connection test...
 
             await imageLoadPromise;
 
-            chartData = filteredLossData;
+            chartData = averagedData;
             mainContent.classList.remove('hidden');
             
             // Reset AI analysis
@@ -1343,7 +1364,11 @@ Waiting for connection test...
             if (fullRange <= 0) return;
             const windowSize = end - start;
             const zoom = Math.round((windowSize / fullRange) * 100);
-            const offset = Math.round(((start - minStep) / (fullRange - windowSize)) * 100);
+            let offset = 0;
+            if (windowSize < fullRange) {
+                offset = Math.round(((start - minStep) / (fullRange - windowSize)) * 100);
+                offset = Math.max(0, Math.min(100, offset));
+            }
             document.getElementById('zoomSlider').value = zoom;
             document.getElementById('panSlider').value = offset;
             document.getElementById('zoomValue').textContent = `${zoom}%`;
