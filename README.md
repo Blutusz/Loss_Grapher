@@ -1,6 +1,6 @@
 # Loss Grapher
 
-This project contains simple HTML tools for visualizing training loss values from your logs. Upload a log, and the page plots the loss over training steps. Two versions are provided:
+This project contains simple HTML tools for visualizing training loss values from your logs. Upload a log, and the page plots the loss over training steps. Both tools automatically filter out obviously invalid loss values (e.g. negative or extreme outliers) to avoid interpreting corrupt data. Two versions are provided:
 
 - **enhanced-loss-extractor-2.html** – uses Chart.js with many features including moving averages and AI powered analysis.
 - **loss-grapher-plotly.html** – a lightweight variant built with Plotly.

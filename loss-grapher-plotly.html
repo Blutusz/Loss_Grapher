@@ -41,6 +41,15 @@
 let chartData = [];
 const stepImages = {};
 let imageLoadPromise = Promise.resolve();
+function filterOutliers(data){
+  if(data.length<3) return data.filter(d=>isFinite(d.loss)&&d.loss>=0);
+  const valid=data.filter(d=>isFinite(d.loss)&&d.loss>=0);
+  const vals=valid.map(d=>d.loss);
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const std=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+  if(std===0) return valid;
+  return valid.filter(d=>Math.abs(d.loss-mean)<=3*std);
+}
 function extractStepNumber(filename){
   const nums = filename.match(/\d+/g);
   if(!nums) return null;
@@ -77,6 +86,7 @@ async function extractLosses(){
       chartData.push({step:parseInt(stepMatch[1]),loss:parseFloat(lossMatch[1])});
     }
   });
+  chartData=filterOutliers(chartData);
   if(chartData.length===0){
     alert('No loss data found');
     return;
