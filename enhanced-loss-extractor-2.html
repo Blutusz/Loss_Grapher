@@ -381,6 +381,18 @@ Supports formats like:
                     <input type="range" id="maWindow" min="0" max="50" value="0" onchange="updateMovingAverage()">
                     <span id="maWindowValue" style="min-width: 35px; font-weight: bold;">Off</span>
                 </div>
+
+                <div class="control-group">
+                    <label>Zoom:</label>
+                    <input type="range" id="zoomSlider" min="10" max="100" value="100" oninput="applyZoomControls()">
+                    <span id="zoomValue" style="min-width:35px;font-weight:bold;">100%</span>
+                </div>
+
+                <div class="control-group">
+                    <label>Scroll:</label>
+                    <input type="range" id="panSlider" min="0" max="100" value="0" oninput="applyZoomControls()">
+                    <span id="panValue" style="min-width:35px;font-weight:bold;">0%</span>
+                </div>
                 
                 <div class="control-group">
                     <label>Analyze Range:</label>
@@ -1071,9 +1083,11 @@ Waiting for connection test...
                             },
                             onZoomComplete({chart}) {
                                 updateVisibleData(chart);
+                                syncZoomControls(chart);
                             },
                             onPanComplete({chart}) {
                                 updateVisibleData(chart);
+                                syncZoomControls(chart);
                             }
                         },
                         tooltip: {
@@ -1083,6 +1097,7 @@ Waiting for connection test...
                     }
                 }
             });
+            initZoomControls();
         }
         
         function createRateChart() {
@@ -1272,7 +1287,57 @@ Waiting for connection test...
         function resetZoom() {
             if (lossChart) {
                 lossChart.resetZoom();
+                initZoomControls();
+                lossChart.options.scales.x.min = chartData[0].step;
+                lossChart.options.scales.x.max = chartData[chartData.length - 1].step;
+                updateVisibleData(lossChart);
             }
+        }
+
+        function initZoomControls() {
+            const zoom = document.getElementById('zoomSlider');
+            const pan = document.getElementById('panSlider');
+            document.getElementById('zoomValue').textContent = '100%';
+            document.getElementById('panValue').textContent = '0%';
+            zoom.value = 100;
+            pan.value = 0;
+        }
+
+        function applyZoomControls() {
+            if (!lossChart || chartData.length === 0) return;
+            const zoom = parseInt(document.getElementById('zoomSlider').value);
+            const pan = parseInt(document.getElementById('panSlider').value);
+            document.getElementById('zoomValue').textContent = `${zoom}%`;
+            document.getElementById('panValue').textContent = `${pan}%`;
+
+            const total = chartData.length;
+            const fraction = zoom / 100;
+            const windowSize = Math.max(1, Math.floor(total * fraction));
+            const startIdx = Math.floor(pan / 100 * (total - windowSize));
+            const startStep = chartData[startIdx].step;
+            const endStep = chartData[startIdx + windowSize - 1].step;
+
+            lossChart.options.scales.x.min = startStep;
+            lossChart.options.scales.x.max = endStep;
+            updateVisibleData(lossChart);
+        }
+
+        function syncZoomControls(chart) {
+            const xScale = chart.scales.x;
+            if (!xScale) return;
+            const minStep = chartData[0].step;
+            const maxStep = chartData[chartData.length - 1].step;
+            const start = xScale.min !== undefined ? xScale.min : minStep;
+            const end = xScale.max !== undefined ? xScale.max : maxStep;
+            const fullRange = maxStep - minStep;
+            if (fullRange <= 0) return;
+            const windowSize = end - start;
+            const zoom = Math.round((windowSize / fullRange) * 100);
+            const offset = Math.round(((start - minStep) / (fullRange - windowSize)) * 100);
+            document.getElementById('zoomSlider').value = zoom;
+            document.getElementById('panSlider').value = offset;
+            document.getElementById('zoomValue').textContent = `${zoom}%`;
+            document.getElementById('panValue').textContent = `${offset}%`;
         }
         
         function calculateTrendline(x, y) {
