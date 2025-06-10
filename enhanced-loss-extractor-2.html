@@ -1074,12 +1074,20 @@ Waiting for connection test...
                             zoom: {
                                 wheel: {
                                     enabled: true,
+                                    speed: 0.1
                                 },
-                                mode: 'x',
+                                pinch: {
+                                    enabled: true
+                                },
+                                drag: {
+                                    enabled: true
+                                },
+                                mode: 'x'
                             },
                             pan: {
                                 enabled: true,
                                 mode: 'x',
+                                threshold: 5
                             },
                             onZoomComplete({chart}) {
                                 updateVisibleData(chart);

@@ -24,4 +24,6 @@ Use either HTML file directly in your browser to analyze your logs.
 The enhanced extractor uses Chart.js 3.9 with the zoom plugin. When you zoom or
 pan the loss chart, the visible points are reduced to a maximum of 500 to keep
 interaction smooth. You can tweak this limit by editing `MAX_VISIBLE_POINTS` in
-the HTML file.
+the HTML file. The chart now enables pinch gestures and slower scroll zooming so
+Mac trackpads work smoothly—use two fingers to pinch to zoom and click&drag to
+pan across the steps.
