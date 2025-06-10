@@ -18,3 +18,10 @@ You can overlay sample images generated during training:
 3. Markers will appear on the loss chart at steps where images are available. Click a marker to preview the first four images for that step.
 
 Use either HTML file directly in your browser to analyze your logs.
+
+## Chart.js version
+
+The enhanced extractor uses Chart.js 3.9 with the zoom plugin. When you zoom or
+pan the loss chart, the visible points are reduced to a maximum of 500 to keep
+interaction smooth. You can tweak this limit by editing `MAX_VISIBLE_POINTS` in
+the HTML file.

@@ -576,6 +576,7 @@ Waiting for connection test...
         let lockedImageIndex = 0;
         let sliderIndicatorValue = null;
         let sliderIndicatorIndex = null;
+        const MAX_VISIBLE_POINTS = 500;
 
         const sliderIndicatorPlugin = {
             id: 'sliderIndicator',
@@ -1067,6 +1068,12 @@ Waiting for connection test...
                             pan: {
                                 enabled: true,
                                 mode: 'x',
+                            },
+                            onZoomComplete({chart}) {
+                                updateVisibleData(chart);
+                            },
+                            onPanComplete({chart}) {
+                                updateVisibleData(chart);
                             }
                         },
                         tooltip: {
@@ -1274,11 +1281,40 @@ Waiting for connection test...
             const sumY = y.reduce((a, b) => a + b, 0);
             const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
             const sumXX = x.reduce((acc, xi) => acc + xi * xi, 0);
-            
+
             const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
             const intercept = (sumY - slope * sumX) / n;
-            
+
             return { slope, intercept };
+        }
+
+        function updateVisibleData(chart) {
+            const xScale = chart.scales.x;
+            if (!xScale) return;
+            const min = xScale.min;
+            const max = xScale.max;
+            if (min === undefined || max === undefined) return;
+            const subset = chartData.filter(d => d.step >= min && d.step <= max);
+            if (subset.length === 0) return;
+            const stride = Math.ceil(subset.length / MAX_VISIBLE_POINTS);
+            const reduced = [];
+            for (let i = 0; i < subset.length; i += stride) {
+                reduced.push(subset[i]);
+            }
+            const steps = reduced.map(p => p.step);
+            const losses = reduced.map(p => p.lossValue);
+            chart.data.labels = steps;
+            chart.data.datasets[0].data = losses;
+            const maIndex = chart.data.datasets.findIndex(ds => ds.label && ds.label.startsWith('MA('));
+            if (maIndex !== -1 && movingAverageWindow > 0 && steps.length > movingAverageWindow) {
+                chart.data.datasets[maIndex].data = calculateMovingAverage(losses, movingAverageWindow);
+            }
+            const trendIndex = chart.data.datasets.findIndex(ds => ds.label === 'Trend');
+            if (trendIndex !== -1 && steps.length > 1) {
+                const trendline = calculateTrendline(steps, losses);
+                chart.data.datasets[trendIndex].data = steps.map(s => trendline.slope * s + trendline.intercept);
+            }
+            chart.update('none');
         }
         
         function downloadChart() {
